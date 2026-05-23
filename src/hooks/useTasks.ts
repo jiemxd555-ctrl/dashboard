@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Task, Review } from '../types'
 import { SAMPLE_TASKS, SAMPLE_REVIEWS } from '../utils/sampleData'
 import { generateId, generateReviewId } from '../utils/taskUtils'
 
 const TASKS_KEY = 'dashboard_tasks'
 const REVIEWS_KEY = 'dashboard_reviews'
+const SAVED_AT_KEY = 'dashboard_saved_at'
+
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error'
 
 function loadTasks(): Task[] {
   try {
@@ -22,10 +25,30 @@ function loadReviews(): Review[] {
   return SAMPLE_REVIEWS
 }
 
+/** 取本地最近一次「同步标记」，没有则用本地任务的最新 updatedAt 当作隐式标记 */
+function readLocalSavedAt(tasks: Task[], reviews: Review[]): string {
+  const explicit = localStorage.getItem(SAVED_AT_KEY) || ''
+  if (explicit) return explicit
+  const fromTasks = tasks.reduce((max, t) => (t.updatedAt > max ? t.updatedAt : max), '')
+  const fromReviews = reviews.reduce((max, r) => (r.createdAt > max ? r.createdAt : max), '')
+  return fromTasks > fromReviews ? fromTasks : fromReviews
+}
+
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>(loadTasks)
   const [reviews, setReviews] = useState<Review[]>(loadReviews)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
+  // 用 ref 保证 push 时拿到最新数据
+  const dataRef = useRef({ tasks, reviews })
+  dataRef.current = { tasks, reviews }
+
+  // 初次拉取是否完成；完成前不要触发 push（避免覆盖云端）
+  const initialFetchDone = useRef(false)
+  const pushTimerRef = useRef<number | null>(null)
+  const inFlightRef = useRef(false)
+
+  // 持久化到 localStorage
   useEffect(() => {
     localStorage.setItem(TASKS_KEY, JSON.stringify(tasks))
   }, [tasks])
@@ -34,6 +57,100 @@ export function useTasks() {
     localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews))
   }, [reviews])
 
+  // 推送到云端（立即）
+  const pushNow = useCallback(async () => {
+    if (inFlightRef.current) return
+    inFlightRef.current = true
+    setSyncStatus('syncing')
+    try {
+      const savedAt = new Date().toISOString()
+      const payload = {
+        tasks: dataRef.current.tasks,
+        reviews: dataRef.current.reviews,
+        savedAt,
+      }
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      localStorage.setItem(SAVED_AT_KEY, savedAt)
+      setSyncStatus('synced')
+    } catch (err) {
+      console.warn('Cloud sync push failed:', err)
+      setSyncStatus('error')
+    } finally {
+      inFlightRef.current = false
+    }
+  }, [])
+
+  // 防抖推送：1.5s 内的多次改动合并为一次上传
+  const schedulePush = useCallback(() => {
+    if (!initialFetchDone.current) return
+    if (pushTimerRef.current) window.clearTimeout(pushTimerRef.current)
+    pushTimerRef.current = window.setTimeout(() => {
+      pushNow()
+    }, 1500)
+  }, [pushNow])
+
+  // 初次：从云端拉取，根据时间戳决定方向
+  useEffect(() => {
+    let cancelled = false
+
+    async function init() {
+      setSyncStatus('syncing')
+      try {
+        const res = await fetch('/api/sync')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const cloud = (await res.json()) as
+          | { tasks: Task[]; reviews: Review[]; savedAt: string }
+          | null
+        if (cancelled) return
+
+        const localSavedAt = readLocalSavedAt(dataRef.current.tasks, dataRef.current.reviews)
+        const cloudSavedAt = cloud?.savedAt || ''
+
+        if (cloud && cloudSavedAt && cloudSavedAt > localSavedAt) {
+          // 云端更新，下行同步
+          setTasks(cloud.tasks)
+          setReviews(cloud.reviews || [])
+          localStorage.setItem(SAVED_AT_KEY, cloudSavedAt)
+          setSyncStatus('synced')
+          initialFetchDone.current = true
+        } else if (!cloud || !cloudSavedAt || localSavedAt > cloudSavedAt) {
+          // 本地更新（或云端空），上行同步
+          initialFetchDone.current = true
+          await pushNow()
+        } else {
+          // 两端一致
+          setSyncStatus('synced')
+          initialFetchDone.current = true
+        }
+      } catch (err) {
+        console.warn('Cloud sync init failed:', err)
+        if (!cancelled) {
+          setSyncStatus('offline')
+          initialFetchDone.current = true
+        }
+      }
+    }
+
+    init()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // 数据变化 → 触发防抖推送
+  useEffect(() => {
+    if (initialFetchDone.current) {
+      schedulePush()
+    }
+  }, [tasks, reviews, schedulePush])
+
+  // —— CRUD ——
   const addTask = useCallback((data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date().toISOString()
     const task: Task = { ...data, id: generateId(), createdAt: now, updatedAt: now }
@@ -89,9 +206,31 @@ export function useTasks() {
     setReviews(prev => prev.filter(r => r.id !== id))
   }, [])
 
+  // 手动从云端重新拉取一次（用户主动点击同步按钮）
+  const pullNow = useCallback(async () => {
+    setSyncStatus('syncing')
+    try {
+      const res = await fetch('/api/sync')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const cloud = (await res.json()) as
+        | { tasks: Task[]; reviews: Review[]; savedAt: string }
+        | null
+      if (cloud && cloud.savedAt) {
+        setTasks(cloud.tasks)
+        setReviews(cloud.reviews || [])
+        localStorage.setItem(SAVED_AT_KEY, cloud.savedAt)
+      }
+      setSyncStatus('synced')
+    } catch (err) {
+      console.warn('Cloud sync pull failed:', err)
+      setSyncStatus('error')
+    }
+  }, [])
+
   return {
     tasks,
     reviews,
+    syncStatus,
     addTask,
     updateTask,
     deleteTask,
@@ -101,5 +240,7 @@ export function useTasks() {
     addReview,
     updateReview,
     deleteReview,
+    pushNow,
+    pullNow,
   }
 }

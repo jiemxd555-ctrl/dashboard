@@ -15,10 +15,11 @@ import { Task, ViewType, TaskStatus } from './types'
 
 export default function App() {
   const {
-    tasks, reviews,
+    tasks, reviews, syncStatus,
     addTask, updateTask, deleteTask, markDone,
     importTasks, exportData,
     addReview, updateReview, deleteReview,
+    pullNow,
   } = useTasks()
 
   const [view, setView] = useState<ViewType>('dashboard')
@@ -63,6 +64,8 @@ export default function App() {
         onChange={setView}
         onExport={exportData}
         onImport={handleImport}
+        syncStatus={syncStatus}
+        onSync={pullNow}
       />
 
       {/* Main content — on mobile adds bottom padding for nav bar */}

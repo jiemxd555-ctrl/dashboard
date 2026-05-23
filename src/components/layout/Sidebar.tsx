@@ -8,14 +8,22 @@ import {
   BookOpen,
   Upload,
   Download,
+  Cloud,
+  CloudOff,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 import { ViewType } from '../../types'
+import { SyncStatus } from '../../hooks/useTasks'
 
 interface SidebarProps {
   current: ViewType
   onChange: (v: ViewType) => void
   onExport: () => void
   onImport: () => void
+  syncStatus: SyncStatus
+  onSync: () => void
 }
 
 const NAV_ITEMS: { id: ViewType; label: string; icon: React.ReactNode }[] = [
@@ -27,7 +35,35 @@ const NAV_ITEMS: { id: ViewType; label: string; icon: React.ReactNode }[] = [
   { id: 'review', label: '复盘中心', icon: <BookOpen size={16} /> },
 ]
 
-export function Sidebar({ current, onChange, onExport, onImport }: SidebarProps) {
+function SyncIndicator({ status, onSync }: { status: SyncStatus; onSync: () => void }) {
+  const visual = (() => {
+    switch (status) {
+      case 'syncing':
+        return { icon: <RefreshCw size={12} className="animate-spin" />, text: '同步中...', color: 'text-stone-400' }
+      case 'synced':
+        return { icon: <CheckCircle2 size={12} />, text: '已同步', color: 'text-emerald-500' }
+      case 'offline':
+        return { icon: <CloudOff size={12} />, text: '离线', color: 'text-stone-400' }
+      case 'error':
+        return { icon: <AlertTriangle size={12} />, text: '同步失败', color: 'text-amber-500' }
+      default:
+        return { icon: <Cloud size={12} />, text: '云端同步', color: 'text-stone-400' }
+    }
+  })()
+
+  return (
+    <button
+      onClick={onSync}
+      title="点击立即从云端拉取最新数据"
+      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs ${visual.color} hover:bg-stone-100 transition-colors`}
+    >
+      {visual.icon}
+      <span>{visual.text}</span>
+    </button>
+  )
+}
+
+export function Sidebar({ current, onChange, onExport, onImport, syncStatus, onSync }: SidebarProps) {
   return (
     <aside className="hidden md:flex w-56 flex-shrink-0 h-screen bg-stone-50 border-r border-stone-100 flex-col sticky top-0">
       {/* Logo */}
@@ -56,6 +92,7 @@ export function Sidebar({ current, onChange, onExport, onImport }: SidebarProps)
 
       {/* Footer actions */}
       <div className="px-3 py-4 border-t border-stone-100 space-y-0.5">
+        <SyncIndicator status={syncStatus} onSync={onSync} />
         <button
           onClick={onImport}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
