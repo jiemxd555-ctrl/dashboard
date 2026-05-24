@@ -47,6 +47,8 @@ export function useTasks() {
   const initialFetchDone = useRef(false)
   const pushTimerRef = useRef<number | null>(null)
   const inFlightRef = useRef(false)
+  // 正在从云端拉取数据时设为 true，防止拉取触发多余的 push
+  const isPullingRef = useRef(false)
 
   // 持久化到 localStorage
   useEffect(() => {
@@ -114,6 +116,7 @@ export function useTasks() {
 
         if (cloud && cloudSavedAt && (!hasLocalHistory || cloudSavedAt >= localSavedAt)) {
           // 云端有数据，且：本设备从未同步过（新设备/新浏览器），或云端更新 → 下行同步
+          isPullingRef.current = true
           setTasks(cloud.tasks)
           setReviews(cloud.reviews || [])
           localStorage.setItem(SAVED_AT_KEY, cloudSavedAt)
@@ -148,8 +151,12 @@ export function useTasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 数据变化 → 触发防抖推送
+  // 数据变化 → 触发防抖推送（云端拉取引起的变化不推送，避免循环写入）
   useEffect(() => {
+    if (isPullingRef.current) {
+      isPullingRef.current = false
+      return
+    }
     if (initialFetchDone.current) {
       schedulePush()
     }
@@ -221,6 +228,7 @@ export function useTasks() {
         | { tasks: Task[]; reviews: Review[]; savedAt: string }
         | null
       if (cloud && cloud.savedAt) {
+        isPullingRef.current = true
         setTasks(cloud.tasks)
         setReviews(cloud.reviews || [])
         localStorage.setItem(SAVED_AT_KEY, cloud.savedAt)
