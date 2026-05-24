@@ -108,20 +108,25 @@ export function useTasks() {
           | null
         if (cancelled) return
 
+        const hasLocalHistory = !!localStorage.getItem(SAVED_AT_KEY)
         const localSavedAt = readLocalSavedAt(dataRef.current.tasks, dataRef.current.reviews)
         const cloudSavedAt = cloud?.savedAt || ''
 
-        if (cloud && cloudSavedAt && cloudSavedAt > localSavedAt) {
-          // 云端更新，下行同步
+        if (cloud && cloudSavedAt && (!hasLocalHistory || cloudSavedAt >= localSavedAt)) {
+          // 云端有数据，且：本设备从未同步过（新设备/新浏览器），或云端更新 → 下行同步
           setTasks(cloud.tasks)
           setReviews(cloud.reviews || [])
           localStorage.setItem(SAVED_AT_KEY, cloudSavedAt)
           setSyncStatus('synced')
           initialFetchDone.current = true
-        } else if (!cloud || !cloudSavedAt || localSavedAt > cloudSavedAt) {
-          // 本地更新（或云端空），上行同步
+        } else if (hasLocalHistory && (!cloud || !cloudSavedAt || localSavedAt > cloudSavedAt)) {
+          // 本设备有同步历史 且 本地更新（或云端空）→ 上行同步
           initialFetchDone.current = true
           await pushNow()
+        } else if (!cloud || !cloudSavedAt) {
+          // 云端完全没数据 且 本地没历史 → 这是全新状态，不推送示例数据
+          setSyncStatus('synced')
+          initialFetchDone.current = true
         } else {
           // 两端一致
           setSyncStatus('synced')
