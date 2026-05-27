@@ -264,6 +264,17 @@ export function useTasks() {
     }
   }, [])
 
+  // 页面重新可见时（切回 app / 解锁屏幕）自动拉取最新数据
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && initialFetchDone.current) {
+        pullNow()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [pullNow])
+
   return {
     tasks,
     reviews,
