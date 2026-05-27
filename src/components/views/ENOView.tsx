@@ -285,12 +285,9 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
         </p>
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-lg md:text-2xl font-semibold md:font-light" style={{ color: '#1A1A1A' }}>
+            <h1 className="text-3xl md:text-4xl font-bold" style={{ color: '#1A1A1A' }}>
               ENO 摄影部
             </h1>
-            <p className="text-xs md:text-sm mt-0.5" style={{ color: '#8A8A8A' }}>
-              角色与任务分配
-            </p>
           </div>
           <button
             onClick={addMember}
