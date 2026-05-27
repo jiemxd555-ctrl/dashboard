@@ -3,6 +3,7 @@ import { Task, calcPriorityScore } from '../../types'
 import { TaskCard } from '../task/TaskCard'
 import { isOverdue, isDueToday, isDueThisWeek, isDueThisMonth, sumEstimatedMinutes, formatMinutes } from '../../utils/taskUtils'
 import { isFuture, parseISO, startOfDay } from 'date-fns'
+import { ENOTeamPanel } from './ENOTeamPanel'
 
 interface TimelineViewProps {
   tasks: Task[]
@@ -139,6 +140,9 @@ export function TimelineView({ tasks, onTaskClick, onMarkDone, onAddTask }: Time
           <div className="text-center text-stone-300 py-10 text-sm">该时间段暂无任务</div>
         )}
       </div>
+
+      {/* ENO 摄影部 */}
+      <ENOTeamPanel />
     </div>
   )
 }

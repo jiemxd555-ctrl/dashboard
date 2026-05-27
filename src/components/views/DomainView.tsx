@@ -2,6 +2,7 @@ import React from 'react'
 import { Task, TaskArea, AREA_LABELS, AREA_DOT, calcPriorityScore } from '../../types'
 import { TaskCard } from '../task/TaskCard'
 import { formatMinutes, getAreaLoadLabel } from '../../utils/taskUtils'
+import { ENOTeamPanel } from './ENOTeamPanel'
 
 interface DomainViewProps {
   tasks: Task[]
@@ -80,6 +81,7 @@ export function DomainView({ tasks, onTaskClick, onMarkDone, onAddTask }: Domain
       {/* Domain columns */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {totalByArea.map(({ area, tasks: areaT }) => {
+
           const sorted = [...areaT].sort((a, b) => calcPriorityScore(b) - calcPriorityScore(a))
           const totalMins = areaT.reduce((s, t) => s + (t.estimatedMinutes ?? 0), 0)
           const highPriority = areaT.filter(t => t.importance >= 4 && t.urgency >= 4).length
@@ -130,6 +132,9 @@ export function DomainView({ tasks, onTaskClick, onMarkDone, onAddTask }: Domain
           )
         })}
       </div>
+
+      {/* ENO 摄影部 */}
+      <ENOTeamPanel />
     </div>
   )
 }
