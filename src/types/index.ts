@@ -49,6 +49,26 @@ export interface Review {
 
 export type ViewType = 'dashboard' | 'kanban' | 'domain' | 'eno' | 'timeline' | 'stress' | 'review'
 
+// ── ENO 摄影部 ──────────────────────────────────────────
+export interface ENOTaskItem {
+  name: string
+  qty: string
+  primary?: boolean
+}
+
+export interface ENOSection {
+  tag: string
+  items: ENOTaskItem[]
+}
+
+export interface ENOMember {
+  id: string
+  name: string
+  role: string
+  metric: string
+  sections: ENOSection[]
+}
+
 export const AREA_LABELS: Record<TaskArea, string> = {
   work: '工作',
   learning: '学习成长',

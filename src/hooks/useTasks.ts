@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Task, Review } from '../types'
+import { Task, Review, ENOMember } from '../types'
 import { SAMPLE_TASKS, SAMPLE_REVIEWS } from '../utils/sampleData'
+import { DEFAULT_ENO_TEAM } from '../utils/enoData'
 import { generateId, generateReviewId } from '../utils/taskUtils'
 
 const TASKS_KEY = 'dashboard_tasks'
 const REVIEWS_KEY = 'dashboard_reviews'
+const ENO_KEY = 'dashboard_eno_team'
 const SAVED_AT_KEY = 'dashboard_saved_at'
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error'
@@ -25,6 +27,14 @@ function loadReviews(): Review[] {
   return SAMPLE_REVIEWS
 }
 
+function loadENOTeam(): ENOMember[] {
+  try {
+    const raw = localStorage.getItem(ENO_KEY)
+    if (raw) return JSON.parse(raw) as ENOMember[]
+  } catch {}
+  return DEFAULT_ENO_TEAM
+}
+
 /** 取本地最近一次「同步标记」，没有则用本地任务的最新 updatedAt 当作隐式标记 */
 function readLocalSavedAt(tasks: Task[], reviews: Review[]): string {
   const explicit = localStorage.getItem(SAVED_AT_KEY) || ''
@@ -37,11 +47,12 @@ function readLocalSavedAt(tasks: Task[], reviews: Review[]): string {
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>(loadTasks)
   const [reviews, setReviews] = useState<Review[]>(loadReviews)
+  const [enoTeam, setENOTeam] = useState<ENOMember[]>(loadENOTeam)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
   // 用 ref 保证 push 时拿到最新数据
-  const dataRef = useRef({ tasks, reviews })
-  dataRef.current = { tasks, reviews }
+  const dataRef = useRef({ tasks, reviews, enoTeam })
+  dataRef.current = { tasks, reviews, enoTeam }
 
   // 初次拉取是否完成；完成前不要触发 push（避免覆盖云端）
   const initialFetchDone = useRef(false)
@@ -59,6 +70,10 @@ export function useTasks() {
     localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews))
   }, [reviews])
 
+  useEffect(() => {
+    localStorage.setItem(ENO_KEY, JSON.stringify(enoTeam))
+  }, [enoTeam])
+
   // 推送到云端（立即）
   const pushNow = useCallback(async () => {
     if (inFlightRef.current) return
@@ -69,6 +84,7 @@ export function useTasks() {
       const payload = {
         tasks: dataRef.current.tasks,
         reviews: dataRef.current.reviews,
+        enoTeam: dataRef.current.enoTeam,
         savedAt,
       }
       const res = await fetch('/api/sync', {
@@ -106,7 +122,7 @@ export function useTasks() {
         const res = await fetch('/api/sync')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const cloud = (await res.json()) as
-          | { tasks: Task[]; reviews: Review[]; savedAt: string }
+          | { tasks: Task[]; reviews: Review[]; enoTeam?: ENOMember[]; savedAt: string }
           | null
         if (cancelled) return
 
@@ -119,6 +135,7 @@ export function useTasks() {
           isPullingRef.current = true
           setTasks(cloud.tasks)
           setReviews(cloud.reviews || [])
+          if (cloud.enoTeam) setENOTeam(cloud.enoTeam)
           localStorage.setItem(SAVED_AT_KEY, cloudSavedAt)
           setSyncStatus('synced')
           initialFetchDone.current = true
@@ -127,7 +144,7 @@ export function useTasks() {
           initialFetchDone.current = true
           await pushNow()
         } else if (!cloud || !cloudSavedAt) {
-          // 云端完全没数据 且 本地没历史 → 这是全新状态，不推送示例数据
+          // 云端完全没数据 且 本地没历史 → 全新状态，不推送示例数据
           setSyncStatus('synced')
           initialFetchDone.current = true
         } else {
@@ -160,7 +177,7 @@ export function useTasks() {
     if (initialFetchDone.current) {
       schedulePush()
     }
-  }, [tasks, reviews, schedulePush])
+  }, [tasks, reviews, enoTeam, schedulePush])
 
   // —— CRUD ——
   const addTask = useCallback((data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -218,6 +235,11 @@ export function useTasks() {
     setReviews(prev => prev.filter(r => r.id !== id))
   }, [])
 
+  // —— ENO 团队 ——
+  const updateENOTeam = useCallback((team: ENOMember[]) => {
+    setENOTeam(team)
+  }, [])
+
   // 手动从云端重新拉取一次（用户主动点击同步按钮）
   const pullNow = useCallback(async () => {
     setSyncStatus('syncing')
@@ -225,12 +247,13 @@ export function useTasks() {
       const res = await fetch('/api/sync')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const cloud = (await res.json()) as
-        | { tasks: Task[]; reviews: Review[]; savedAt: string }
+        | { tasks: Task[]; reviews: Review[]; enoTeam?: ENOMember[]; savedAt: string }
         | null
       if (cloud && cloud.savedAt) {
         isPullingRef.current = true
         setTasks(cloud.tasks)
         setReviews(cloud.reviews || [])
+        if (cloud.enoTeam) setENOTeam(cloud.enoTeam)
         localStorage.setItem(SAVED_AT_KEY, cloud.savedAt)
       }
       setSyncStatus('synced')
@@ -243,6 +266,7 @@ export function useTasks() {
   return {
     tasks,
     reviews,
+    enoTeam,
     syncStatus,
     addTask,
     updateTask,
@@ -253,6 +277,7 @@ export function useTasks() {
     addReview,
     updateReview,
     deleteReview,
+    updateENOTeam,
     pushNow,
     pullNow,
   }

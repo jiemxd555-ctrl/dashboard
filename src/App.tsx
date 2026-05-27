@@ -16,10 +16,11 @@ import { Task, ViewType, TaskStatus } from './types'
 
 export default function App() {
   const {
-    tasks, reviews, syncStatus,
+    tasks, reviews, enoTeam, syncStatus,
     addTask, updateTask, deleteTask, markDone,
     importTasks, exportData,
     addReview, updateReview, deleteReview,
+    updateENOTeam,
     pullNow,
   } = useTasks()
 
@@ -79,7 +80,7 @@ export default function App() {
           />
         )}
         {view === 'domain' && <DomainView {...commonProps} />}
-        {view === 'eno' && <ENOView />}
+        {view === 'eno' && <ENOView enoTeam={enoTeam} onUpdateENOTeam={updateENOTeam} />}
         {view === 'timeline' && <TimelineView {...commonProps} />}
         {view === 'stress' && (
           <StressView

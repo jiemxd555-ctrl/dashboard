@@ -1,109 +1,281 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Trash2, Plus, X } from 'lucide-react'
+import { ENOMember, ENOSection, ENOTaskItem } from '../../types'
 
-interface TaskItem {
-  name: string
-  qty: string
-  primary?: boolean
+// ── 行内可编辑文本 ─────────────────────────────────────────
+interface EditableTextProps {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  className?: string
+  style?: React.CSSProperties
 }
 
-interface Section {
-  tag: string
-  items: TaskItem[]
+function EditableText({ value, onChange, placeholder = '点击编辑', className = '', style }: EditableTextProps) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+  }, [editing])
+
+  const commit = () => {
+    const trimmed = draft.trim()
+    onChange(trimmed || value)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') commit()
+          if (e.key === 'Escape') { setDraft(value); setEditing(false) }
+        }}
+        className={`bg-[#FAF6EF] border border-[#D4C4A8] rounded px-1.5 py-0 outline-none focus:border-[#9B7E50] ${className}`}
+        style={{ ...style, minWidth: 40 }}
+      />
+    )
+  }
+
+  return (
+    <span
+      onClick={() => { setDraft(value); setEditing(true) }}
+      title="点击编辑"
+      className={`cursor-text rounded px-0.5 hover:bg-[#FAF6EF] transition-colors ${className}`}
+      style={style}
+    >
+      {value || <span style={{ color: '#C0B8AC' }}>{placeholder}</span>}
+    </span>
+  )
 }
 
-interface Member {
-  name: string
-  role: string
-  metric: string
-  sections: Section[]
+// ── 单张成员卡片 ───────────────────────────────────────────
+interface MemberCardProps {
+  member: ENOMember
+  onUpdate: (updates: Partial<ENOMember>) => void
+  onDelete: () => void
 }
 
-const team: Member[] = [
-  {
-    name: '桥', role: '主摄 · 主管', metric: '4–6 套',
-    sections: [
-      {
-        tag: '每日', items: [
-          { name: '上新图（高客单设计款）', qty: '4–6 套', primary: true },
-          { name: '团队工作指导 / 现场把控', qty: '弹性' },
-        ],
-      },
-      {
-        tag: '每月', items: [
-          { name: '视觉知识文档编辑', qty: '2 份' },
-          { name: '视觉创新方案', qty: '1 份' },
-        ],
-      },
-      {
-        tag: '不定期', items: [
-          { name: '外部合作沟通', qty: '主责' },
-          { name: '人员招聘', qty: '主责' },
-          { name: '拍摄道具采购', qty: '联合' },
-        ],
-      },
-    ],
-  },
-  {
-    name: '芷涵', role: '主摄', metric: '5 套',
-    sections: [
-      {
-        tag: '每日', items: [
-          { name: '上新图（高客单设计款）', qty: '5 套', primary: true },
-        ],
-      },
-      {
-        tag: '每月', items: [
-          { name: '视觉创新方案', qty: '1 份' },
-        ],
-      },
-      {
-        tag: '不定期', items: [
-          { name: '参与拍摄道具采购', qty: '联合桥' },
-        ],
-      },
-    ],
-  },
-  {
-    name: '丹妮', role: '摄影助理', metric: '4–6 套',
-    sections: [
-      {
-        tag: '每日', items: [
-          { name: '上新图（基础设计款）', qty: '4–6 套', primary: true },
-          { name: '后期修图（自己 + 芷涵）', qty: '' },
-          { name: '云作品平台图片上传', qty: '' },
-        ],
-      },
-    ],
-  },
-  {
-    name: '鹏博', role: '摄影助理', metric: '3–6 套',
-    sections: [
-      {
-        tag: '每日', items: [
-          { name: '上新图（基础设计款）', qty: '3–6 套', primary: true },
-          { name: '客户定妆照', qty: '1–3 件' },
-          { name: '后期修图（自己 + 桥）', qty: '' },
-          { name: '云作品平台图片上传', qty: '' },
-        ],
-      },
-      {
-        tag: '每周', items: [
-          { name: '电商产品图', qty: '5 套' },
-        ],
-      },
-      {
-        tag: '不定期', items: [
-          { name: '专利图拍摄', qty: '随机' },
-        ],
-      },
-    ],
-  },
-]
+function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
+  const setSections = (sections: ENOSection[]) => onUpdate({ sections })
 
-export function ENOView() {
+  const updateSection = (idx: number, updates: Partial<ENOSection>) => {
+    setSections(member.sections.map((s, i) => i === idx ? { ...s, ...updates } : s))
+  }
+
+  const deleteSection = (idx: number) => {
+    setSections(member.sections.filter((_, i) => i !== idx))
+  }
+
+  const addSection = () => {
+    setSections([...member.sections, { tag: '不定期', items: [{ name: '', qty: '' }] }])
+  }
+
+  const updateItem = (si: number, ii: number, updates: Partial<ENOTaskItem>) => {
+    updateSection(si, {
+      items: member.sections[si].items.map((item, i) => i === ii ? { ...item, ...updates } : item),
+    })
+  }
+
+  const addItem = (si: number) => {
+    updateSection(si, {
+      items: [...member.sections[si].items, { name: '', qty: '' }],
+    })
+  }
+
+  const deleteItem = (si: number, ii: number) => {
+    updateSection(si, {
+      items: member.sections[si].items.filter((_, i) => i !== ii),
+    })
+  }
+
+  return (
+    <div
+      className="bg-white rounded-sm relative group/card"
+      style={{ border: '1px solid #EAE6DE', padding: '20px 22px' }}
+    >
+      {/* 删除成员按钮（hover 显示） */}
+      <button
+        onClick={onDelete}
+        title="删除成员"
+        className="absolute top-3 right-3 p-1 rounded opacity-0 group-hover/card:opacity-100 transition-opacity hover:bg-red-50"
+        style={{ color: '#C0B8AC' }}
+        onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+        onMouseLeave={e => (e.currentTarget.style.color = '#C0B8AC')}
+      >
+        <Trash2 size={13} />
+      </button>
+
+      {/* 卡片头部：姓名 + 角色 tag + 日均 */}
+      <div className="flex items-center justify-between mb-3 pr-6">
+        <div className="flex items-center gap-2 min-w-0">
+          <EditableText
+            value={member.name}
+            onChange={v => onUpdate({ name: v })}
+            placeholder="姓名"
+            className="font-bold shrink-0"
+            style={{ fontSize: '19px', color: '#1A1A1A' }}
+          />
+          <EditableText
+            value={member.role}
+            onChange={v => onUpdate({ role: v })}
+            placeholder="角色"
+            className="text-[11px] px-1.5 py-0.5 rounded-sm shrink-0"
+            style={{ color: '#9B7E50', background: '#FAF6EF' }}
+          />
+        </div>
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <span className="text-[12px]" style={{ color: '#8A8A8A' }}>日均</span>
+          <EditableText
+            value={member.metric}
+            onChange={v => onUpdate({ metric: v })}
+            placeholder="—"
+            className="text-[13px]"
+            style={{ color: '#8A8A8A' }}
+          />
+        </div>
+      </div>
+
+      {/* 分隔线 */}
+      <div style={{ height: '1px', background: '#EAE6DE', marginBottom: '12px' }} />
+
+      {/* 各频率分组 */}
+      <div className="space-y-4">
+        {member.sections.map((section, si) => (
+          <div key={si} className="group/section">
+            {/* 段标签 + 删除段按钮 */}
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <EditableText
+                value={section.tag}
+                onChange={v => updateSection(si, { tag: v })}
+                placeholder="时间段"
+                className="tracking-wide"
+                style={{ fontSize: '11px', color: '#8A8A8A' }}
+              />
+              <button
+                onClick={() => deleteSection(si)}
+                title="删除此段"
+                className="opacity-0 group-hover/section:opacity-100 transition-opacity p-0.5 rounded hover:bg-red-50"
+                style={{ color: '#C0B8AC' }}
+              >
+                <X size={10} />
+              </button>
+            </div>
+
+            {/* 任务列表 */}
+            <div className="space-y-1.5">
+              {section.items.map((item, ii) => (
+                <div key={ii} className="flex items-center gap-1 group/item">
+                  {/* Primary 切换点 */}
+                  <button
+                    onClick={() => updateItem(si, ii, { primary: !item.primary })}
+                    title={item.primary ? '取消重点' : '标为重点'}
+                    className="shrink-0 w-3 h-3 rounded-full border transition-colors"
+                    style={{
+                      borderColor: item.primary ? '#9B7E50' : '#D4CEC6',
+                      background: item.primary ? '#9B7E50' : 'transparent',
+                    }}
+                  />
+
+                  {/* 任务名 */}
+                  <EditableText
+                    value={item.name}
+                    onChange={v => updateItem(si, ii, { name: v })}
+                    placeholder="任务名称"
+                    className="flex-1"
+                    style={{
+                      fontSize: '13px',
+                      color: item.primary ? '#1A1A1A' : '#555555',
+                      fontWeight: item.primary ? 600 : 400,
+                    }}
+                  />
+
+                  {/* 数量 */}
+                  <EditableText
+                    value={item.qty}
+                    onChange={v => updateItem(si, ii, { qty: v })}
+                    placeholder="—"
+                    className="shrink-0 text-right"
+                    style={{ fontSize: '12px', color: '#8A8A8A', minWidth: '56px' }}
+                  />
+
+                  {/* 删除任务按钮 */}
+                  <button
+                    onClick={() => deleteItem(si, ii)}
+                    title="删除此任务"
+                    className="shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-red-50 ml-0.5"
+                    style={{ color: '#C0B8AC' }}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* + 添加任务 */}
+            <button
+              onClick={() => addItem(si)}
+              className="mt-1.5 flex items-center gap-1 text-[11px] transition-colors hover:opacity-80"
+              style={{ color: '#9B7E50' }}
+            >
+              <Plus size={10} /> 添加任务
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* + 添加时间段 */}
+      <button
+        onClick={addSection}
+        className="mt-4 flex items-center gap-1 text-[11px] transition-colors hover:opacity-80 border-t pt-3 w-full"
+        style={{ color: '#9B7E50', borderColor: '#EAE6DE' }}
+      >
+        <Plus size={10} /> 添加时间段
+      </button>
+    </div>
+  )
+}
+
+// ── 主视图 ─────────────────────────────────────────────────
+interface ENOViewProps {
+  enoTeam: ENOMember[]
+  onUpdateENOTeam: (team: ENOMember[]) => void
+}
+
+export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
+  const updateMember = (id: string, updates: Partial<ENOMember>) => {
+    onUpdateENOTeam(enoTeam.map(m => m.id === id ? { ...m, ...updates } : m))
+  }
+
+  const deleteMember = (id: string) => {
+    onUpdateENOTeam(enoTeam.filter(m => m.id !== id))
+  }
+
+  const addMember = () => {
+    const newMember: ENOMember = {
+      id: `eno-${Date.now()}`,
+      name: '新成员',
+      role: '角色',
+      metric: '',
+      sections: [
+        { tag: '每日', items: [{ name: '', qty: '', primary: true }] },
+      ],
+    }
+    onUpdateENOTeam([...enoTeam, newMember])
+  }
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
-      {/* Page header */}
+      {/* 页头 */}
       <div className="mb-8 md:mb-10">
         <p
           className="text-[11px] tracking-[0.18em] uppercase mb-2"
@@ -111,100 +283,57 @@ export function ENOView() {
         >
           03 ROLE CARDS
         </p>
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-end justify-between">
           <div>
             <h1 className="text-lg md:text-2xl font-semibold md:font-light" style={{ color: '#1A1A1A' }}>
               ENO 摄影部
             </h1>
             <p className="text-xs md:text-sm mt-0.5" style={{ color: '#8A8A8A' }}>
-              角色与任务分配
+              角色与任务分配 · 点击任意内容可编辑
             </p>
           </div>
-          <span className="text-[11px] hidden sm:block" style={{ color: '#8A8A8A' }}>
-            主管 / 主摄 / 助理 三档结构
-          </span>
+          <button
+            onClick={addMember}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            style={{ background: '#1A1A1A', color: '#fff' }}
+          >
+            <Plus size={14} /> 添加成员
+          </button>
         </div>
       </div>
 
-      {/* 2×2 Card grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-        {team.map(member => (
-          <div
-            key={member.name}
-            className="bg-white rounded-sm"
-            style={{ border: '1px solid #EAE6DE', padding: '20px 22px' }}
+      {/* 成员卡片网格 */}
+      {enoTeam.length === 0 ? (
+        <div
+          className="text-center py-16 rounded-sm"
+          style={{ border: '1px dashed #EAE6DE', color: '#C0B8AC' }}
+        >
+          <p className="text-sm">暂无成员</p>
+          <button
+            onClick={addMember}
+            className="mt-3 text-xs underline underline-offset-2"
+            style={{ color: '#9B7E50' }}
           >
-            {/* Card header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className="font-bold shrink-0"
-                  style={{ fontSize: '19px', color: '#1A1A1A' }}
-                >
-                  {member.name}
-                </span>
-                <span
-                  className="text-[11px] px-1.5 py-0.5 rounded-sm shrink-0"
-                  style={{ color: '#9B7E50', background: '#FAF6EF' }}
-                >
-                  {member.role}
-                </span>
-              </div>
-              <span
-                className="text-[13px] shrink-0 ml-2"
-                style={{ color: '#8A8A8A' }}
-              >
-                日均 {member.metric}
-              </span>
-            </div>
+            添加第一位成员
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+          {enoTeam.map(member => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              onUpdate={updates => updateMember(member.id, updates)}
+              onDelete={() => deleteMember(member.id)}
+            />
+          ))}
+        </div>
+      )}
 
-            {/* Divider */}
-            <div style={{ height: '1px', background: '#EAE6DE', marginBottom: '12px' }} />
-
-            {/* Sections */}
-            <div className="space-y-3.5">
-              {member.sections.map(section => (
-                <div key={section.tag}>
-                  <p
-                    className="tracking-wide mb-1.5"
-                    style={{ fontSize: '11px', color: '#8A8A8A' }}
-                  >
-                    {section.tag}
-                  </p>
-                  <div className="space-y-1.5">
-                    {section.items.map((item, idx) => (
-                      <div key={idx} className="flex items-baseline">
-                        <span
-                          className="flex-1 pr-3 leading-snug"
-                          style={{
-                            fontSize: '13px',
-                            color: item.primary ? '#1A1A1A' : '#555555',
-                            fontWeight: item.primary ? 600 : 400,
-                          }}
-                        >
-                          {item.name}
-                        </span>
-                        {item.qty && (
-                          <span
-                            className="shrink-0 text-right"
-                            style={{
-                              fontSize: '12px',
-                              color: '#8A8A8A',
-                              minWidth: '72px',
-                            }}
-                          >
-                            {item.qty}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* 使用提示 */}
+      <p className="mt-6 text-center text-[11px]" style={{ color: '#C0B8AC' }}>
+        点击任意文字即可编辑 · 圆点切换重点任务 · hover 卡片右上角可删除成员
+      </p>
     </div>
   )
 }
