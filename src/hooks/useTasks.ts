@@ -203,14 +203,15 @@ export function useTasks() {
     ))
   }, [])
 
-  const importTasks = useCallback((data: { tasks?: Task[]; reviews?: Review[] }) => {
+  const importTasks = useCallback((data: { tasks?: Task[]; reviews?: Review[]; enoTeam?: ENOMember[] }) => {
     if (data.tasks) setTasks(data.tasks)
     if (data.reviews) setReviews(data.reviews)
+    if (data.enoTeam) setENOTeam(data.enoTeam)
   }, [])
 
   const exportData = useCallback(() => {
     const blob = new Blob(
-      [JSON.stringify({ tasks, reviews, exportedAt: new Date().toISOString() }, null, 2)],
+      [JSON.stringify({ tasks, reviews, enoTeam, exportedAt: new Date().toISOString() }, null, 2)],
       { type: 'application/json' }
     )
     const url = URL.createObjectURL(blob)
@@ -219,7 +220,7 @@ export function useTasks() {
     a.download = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [tasks, reviews])
+  }, [tasks, reviews, enoTeam])
 
   const addReview = useCallback((data: Omit<Review, 'id' | 'createdAt'>) => {
     const now = new Date().toISOString()
