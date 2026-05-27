@@ -47,7 +47,7 @@ export interface Review {
   createdAt: string
 }
 
-export type ViewType = 'dashboard' | 'kanban' | 'domain' | 'timeline' | 'stress' | 'review'
+export type ViewType = 'dashboard' | 'kanban' | 'domain' | 'eno' | 'timeline' | 'stress' | 'review'
 
 export const AREA_LABELS: Record<TaskArea, string> = {
   work: '工作',

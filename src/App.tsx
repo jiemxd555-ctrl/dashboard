@@ -4,6 +4,7 @@ import { BottomNav } from './components/layout/BottomNav'
 import { DashboardView } from './components/views/DashboardView'
 import { KanbanView } from './components/views/KanbanView'
 import { DomainView } from './components/views/DomainView'
+import { ENOView } from './components/views/ENOView'
 import { TimelineView } from './components/views/TimelineView'
 import { StressView } from './components/views/StressView'
 import { ReviewView } from './components/views/ReviewView'
@@ -78,6 +79,7 @@ export default function App() {
           />
         )}
         {view === 'domain' && <DomainView {...commonProps} />}
+        {view === 'eno' && <ENOView />}
         {view === 'timeline' && <TimelineView {...commonProps} />}
         {view === 'stress' && (
           <StressView

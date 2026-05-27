@@ -2,7 +2,6 @@ import React from 'react'
 import { Task, TaskArea, AREA_LABELS, AREA_DOT, calcPriorityScore } from '../../types'
 import { TaskCard } from '../task/TaskCard'
 import { formatMinutes, getAreaLoadLabel } from '../../utils/taskUtils'
-import { ENOTeamPanel } from './ENOTeamPanel'
 
 interface DomainViewProps {
   tasks: Task[]
@@ -133,8 +132,6 @@ export function DomainView({ tasks, onTaskClick, onMarkDone, onAddTask }: Domain
         })}
       </div>
 
-      {/* ENO 摄影部 */}
-      <ENOTeamPanel />
     </div>
   )
 }
