@@ -159,7 +159,7 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                 onChange={v => updateSection(si, { tag: v })}
                 placeholder="时间段"
                 className="tracking-wide"
-                style={{ fontSize: '13px', color: '#8A8A8A' }}
+                style={{ fontSize: '15px', color: '#8A8A8A' }}
               />
               <button
                 onClick={() => deleteSection(si)}
@@ -289,7 +289,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
               ENO 摄影部
             </h1>
             <p className="text-xs md:text-sm mt-0.5" style={{ color: '#8A8A8A' }}>
-              角色与任务分配 · 点击任意内容可编辑
+              角色与任务分配
             </p>
           </div>
           <button
@@ -330,10 +330,6 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
         </div>
       )}
 
-      {/* 使用提示 */}
-      <p className="mt-6 text-center text-[11px]" style={{ color: '#C0B8AC' }}>
-        点击任意文字即可编辑 · 圆点切换重点任务 · hover 卡片右上角可删除成员
-      </p>
     </div>
   )
 }
