@@ -159,7 +159,7 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                 onChange={v => updateSection(si, { tag: v })}
                 placeholder="时间段"
                 className="tracking-wide"
-                style={{ fontSize: '11px', color: '#8A8A8A' }}
+                style={{ fontSize: '13px', color: '#8A8A8A' }}
               />
               <button
                 onClick={() => deleteSection(si)}
