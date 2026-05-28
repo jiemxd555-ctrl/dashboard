@@ -5,7 +5,6 @@ import {
   Tag,
   Clock,
   Activity,
-  BookOpen,
   Upload,
   Download,
   Cloud,
