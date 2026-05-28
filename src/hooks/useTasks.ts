@@ -43,6 +43,8 @@ export function useTasks() {
 
   const initialFetchDone = useRef(false)
   const pushTimerRef = useRef<number | null>(null)
+  const retryTimerRef = useRef<number | null>(null)
+  const retryCountRef = useRef(0)
   const inFlightRef = useRef(false)
   const isPullingRef = useRef(false)
 
@@ -75,9 +77,16 @@ export function useTasks() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       localStorage.setItem(SAVED_AT_KEY, savedAt)
       setSyncStatus('synced')
+      retryCountRef.current = 0 // 成功后重置重试计数
     } catch (err) {
       console.warn('Cloud sync push failed:', err)
       setSyncStatus('error')
+      // 自动重试，最多 3 次，间隔 10s
+      if (retryCountRef.current < 3) {
+        retryCountRef.current += 1
+        if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
+        retryTimerRef.current = window.setTimeout(() => { pushNow() }, 10_000)
+      }
     } finally {
       inFlightRef.current = false
     }
@@ -212,9 +221,16 @@ export function useTasks() {
         localStorage.setItem(SAVED_AT_KEY, cloud.savedAt)
       }
       setSyncStatus('synced')
+      retryCountRef.current = 0
     } catch (err) {
       console.warn('Cloud sync pull failed:', err)
       setSyncStatus('error')
+      // 自动重试，最多 3 次，间隔 10s
+      if (retryCountRef.current < 3) {
+        retryCountRef.current += 1
+        if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
+        retryTimerRef.current = window.setTimeout(() => { pullNow() }, 10_000)
+      }
     }
   }, [])
 
