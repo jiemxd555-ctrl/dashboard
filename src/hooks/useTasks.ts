@@ -234,17 +234,6 @@ export function useTasks() {
     }
   }, [])
 
-  // 切回页面时自动同步
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && initialFetchDone.current) {
-        pullNow()
-      }
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [pullNow])
-
   return {
     tasks,
     enoTeam,
