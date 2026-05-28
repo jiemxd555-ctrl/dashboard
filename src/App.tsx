@@ -19,6 +19,7 @@ export default function App() {
     addTask, updateTask, deleteTask, markDone,
     importTasks, exportData,
     updateENOTeam,
+    pushNow,
     pullNow,
   } = useTasks()
 
@@ -65,7 +66,7 @@ export default function App() {
         onExport={exportData}
         onImport={handleImport}
         syncStatus={syncStatus}
-        onSync={pullNow}
+        onSync={syncStatus === 'error' ? pushNow : pullNow}
       />
 
       {/* Main content — on mobile adds bottom padding for nav bar */}

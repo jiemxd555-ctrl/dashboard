@@ -45,7 +45,7 @@ function SyncIndicator({ status, onSync }: { status: SyncStatus; onSync: () => v
       case 'offline':
         return { icon: <CloudOff size={12} />, text: '离线', color: 'text-stone-400' }
       case 'error':
-        return { icon: <AlertTriangle size={12} />, text: '同步失败', color: 'text-amber-500' }
+        return { icon: <AlertTriangle size={12} />, text: '点击重试', color: 'text-amber-500' }
       default:
         return { icon: <Cloud size={12} />, text: '云端同步', color: 'text-stone-400' }
     }
@@ -54,7 +54,7 @@ function SyncIndicator({ status, onSync }: { status: SyncStatus; onSync: () => v
   return (
     <button
       onClick={onSync}
-      title="点击立即从云端拉取最新数据"
+      title={status === 'error' ? '点击重新上传本地数据' : '点击立即从云端拉取最新数据'}
       className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs ${visual.color} hover:bg-stone-100 transition-colors`}
     >
       {visual.icon}
