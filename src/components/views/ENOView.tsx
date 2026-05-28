@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { ENOMember, ENOSection, ENOTaskItem } from '../../types'
 
@@ -290,11 +290,15 @@ interface ENOViewProps {
 }
 
 export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
-  const updateMember = (id: string, updates: Partial<ENOMember>) =>
-    onUpdateENOTeam(enoTeam.map(m => m.id === id ? { ...m, ...updates } : m))
+  const [activeId, setActiveId] = useState<string | 'all'>('all')
 
-  const deleteMember = (id: string) =>
+  const updateMember = useCallback((id: string, updates: Partial<ENOMember>) =>
+    onUpdateENOTeam(enoTeam.map(m => m.id === id ? { ...m, ...updates } : m)), [enoTeam, onUpdateENOTeam])
+
+  const deleteMember = useCallback((id: string) => {
+    if (activeId === id) setActiveId('all')
     onUpdateENOTeam(enoTeam.filter(m => m.id !== id))
+  }, [enoTeam, onUpdateENOTeam, activeId])
 
   const addMember = () => {
     const newMember: ENOMember = {
@@ -309,23 +313,56 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
     onUpdateENOTeam([...enoTeam, newMember])
   }
 
+  const displayed = activeId === 'all' ? enoTeam : enoTeam.filter(m => m.id === activeId)
+
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       {/* 页头 */}
-      <div className="mb-8 md:mb-10">
+      <div className="mb-6">
         <p
           className="text-[11px] tracking-[0.18em] uppercase mb-2"
           style={{ color: '#9B7E50' }}
         >
           03 ROLE CARDS
         </p>
-        <div className="flex items-end justify-between">
-          <h1 className="text-3xl md:text-4xl font-bold" style={{ color: '#1A1A1A' }}>
+        {/* 标题行：大标题 + 人名筛选 + 添加按钮 */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <h1 className="text-3xl md:text-4xl font-bold shrink-0" style={{ color: '#1A1A1A' }}>
             ENO 摄影部
           </h1>
+
+          {/* 人名筛选 tabs */}
+          {enoTeam.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap flex-1">
+              <button
+                onClick={() => setActiveId('all')}
+                className="px-3 py-1 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  background: activeId === 'all' ? '#1A1A1A' : '#F5F3EF',
+                  color: activeId === 'all' ? '#fff' : '#555555',
+                }}
+              >
+                全部
+              </button>
+              {enoTeam.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveId(activeId === m.id ? 'all' : m.id)}
+                  className="px-3 py-1 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    background: activeId === m.id ? '#9B7E50' : '#F5F3EF',
+                    color: activeId === m.id ? '#fff' : '#555555',
+                  }}
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={addMember}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ml-auto"
             style={{ background: '#1A1A1A', color: '#fff' }}
           >
             <Plus size={14} /> 添加成员
@@ -333,7 +370,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
         </div>
       </div>
 
-      {/* 成员卡片网格：手机 1 列，平板 2 列，桌面 3 列 */}
+      {/* 成员卡片网格 */}
       {enoTeam.length === 0 ? (
         <div
           className="text-center py-16 rounded-sm"
@@ -350,7 +387,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {enoTeam.map(member => (
+          {displayed.map(member => (
             <MemberCard
               key={member.id}
               member={member}
