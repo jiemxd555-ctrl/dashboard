@@ -152,23 +152,23 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
             onChange={v => onUpdate({ name: v })}
             placeholder="姓名"
             className="font-bold shrink-0"
-            style={{ fontSize: '21px', color: '#1A1A1A' }}
+            style={{ fontSize: '19px', color: '#1A1A1A' }}
           />
           <EditableText
             value={member.role}
             onChange={v => onUpdate({ role: v })}
             placeholder="角色"
-            className="text-[12px] px-1.5 py-0.5 rounded-sm shrink-0"
+            className="text-[11px] px-1.5 py-0.5 rounded-sm shrink-0"
             style={{ color: '#9B7E50', background: '#FAF6EF' }}
           />
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
-          <span className="text-[13px]" style={{ color: '#8A8A8A' }}>日均</span>
+          <span className="text-[12px]" style={{ color: '#8A8A8A' }}>日均</span>
           <EditableText
             value={member.metric}
             onChange={v => onUpdate({ metric: v })}
             placeholder="—"
-            className="text-[14px]"
+            className="text-[13px]"
             style={{ color: '#8A8A8A' }}
           />
         </div>
@@ -194,7 +194,7 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                 onChange={v => updateSection(si, { tag: v })}
                 placeholder="时间段"
                 className="tracking-wide font-medium flex-1"
-                style={{ fontSize: '16px', color: '#555555' }}
+                style={{ fontSize: '15px', color: '#8A8A8A' }}
               />
               <button
                 onClick={() => deleteSection(si)}
@@ -233,7 +233,7 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                     placeholder="任务名称"
                     className="flex-1"
                     style={{
-                      fontSize: '15px',
+                      fontSize: '13px',
                       color: item.primary ? '#1A1A1A' : '#555555',
                       fontWeight: item.primary ? 600 : 400,
                     }}
@@ -244,7 +244,7 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                     onChange={v => updateItem(si, ii, { qty: v })}
                     placeholder="—"
                     className="shrink-0 text-right"
-                    style={{ fontSize: '14px', color: '#8A8A8A', minWidth: '56px' }}
+                    style={{ fontSize: '12px', color: '#8A8A8A', minWidth: '56px' }}
                   />
                   {/* 删除任务 */}
                   <button
