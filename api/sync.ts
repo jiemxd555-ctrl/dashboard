@@ -10,7 +10,7 @@ const STORAGE_KEY = 'dashboard:user-data'
 
 interface PayloadIn {
   tasks: unknown[]
-  reviews: unknown[]
+  enoTeam?: unknown[]
   savedAt: string
 }
 
@@ -26,10 +26,20 @@ export default async function handler(req: any, res: any) {
     if (req.method === 'POST') {
       const body =
         typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-      if (!body || !Array.isArray(body.tasks) || !Array.isArray(body.reviews) || typeof body.savedAt !== 'string') {
+      if (
+        !body ||
+        !Array.isArray(body.tasks) ||
+        typeof body.savedAt !== 'string'
+      ) {
         return res.status(400).json({ error: 'Invalid payload' })
       }
-      await redis.set(STORAGE_KEY, body)
+      // 只保存需要的字段
+      const payload: PayloadIn = {
+        tasks: body.tasks,
+        enoTeam: Array.isArray(body.enoTeam) ? body.enoTeam : [],
+        savedAt: body.savedAt,
+      }
+      await redis.set(STORAGE_KEY, payload)
       return res.status(200).json({ ok: true, savedAt: body.savedAt })
     }
 
