@@ -325,49 +325,48 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
         >
           03 ROLE CARDS
         </p>
-        {/* 标题行：大标题 + 人名筛选 + 添加按钮 */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <h1 className="text-3xl md:text-4xl font-bold shrink-0" style={{ color: '#1A1A1A' }}>
+        {/* 第一行：标题 + 添加按钮 */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl md:text-4xl font-bold" style={{ color: '#1A1A1A' }}>
             ENO 摄影部
           </h1>
-
-          {/* 人名筛选 tabs */}
-          {enoTeam.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap flex-1">
-              <button
-                onClick={() => setActiveId('all')}
-                className="px-3 py-1 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  background: activeId === 'all' ? '#1A1A1A' : '#F5F3EF',
-                  color: activeId === 'all' ? '#fff' : '#555555',
-                }}
-              >
-                全部
-              </button>
-              {enoTeam.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setActiveId(activeId === m.id ? 'all' : m.id)}
-                  className="px-3 py-1 rounded-lg text-sm font-medium transition-all"
-                  style={{
-                    background: activeId === m.id ? '#9B7E50' : '#F5F3EF',
-                    color: activeId === m.id ? '#fff' : '#555555',
-                  }}
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
-          )}
-
           <button
             onClick={addMember}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0 ml-auto"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors shrink-0"
             style={{ background: '#1A1A1A', color: '#fff' }}
           >
             <Plus size={14} /> 添加成员
           </button>
         </div>
+
+        {/* 第二行：人名筛选 tabs（横向可滚动） */}
+        {enoTeam.length > 0 && (
+          <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            <button
+              onClick={() => setActiveId('all')}
+              className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all shrink-0"
+              style={{
+                background: activeId === 'all' ? '#1A1A1A' : '#F5F3EF',
+                color: activeId === 'all' ? '#fff' : '#555555',
+              }}
+            >
+              全部
+            </button>
+            {enoTeam.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setActiveId(activeId === m.id ? 'all' : m.id)}
+                className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all shrink-0"
+                style={{
+                  background: activeId === m.id ? '#9B7E50' : '#F5F3EF',
+                  color: activeId === m.id ? '#fff' : '#555555',
+                }}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 成员卡片网格 */}
