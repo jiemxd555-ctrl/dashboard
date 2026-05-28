@@ -7,6 +7,7 @@ import { generateId } from '../utils/taskUtils'
 const TASKS_KEY = 'dashboard_tasks'
 const ENO_KEY = 'dashboard_eno_team'
 const SAVED_AT_KEY = 'dashboard_saved_at'
+const PENDING_KEY = 'dashboard_pending_sync' // 本地有未推送修改时为 '1'
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error'
 
@@ -26,11 +27,16 @@ function loadENOTeam(): ENOMember[] {
   return DEFAULT_ENO_TEAM
 }
 
-/** 取本地最近一次「同步标记」，没有则用本地任务的最新 updatedAt 当作隐式标记 */
-function readLocalSavedAt(tasks: Task[]): string {
-  const explicit = localStorage.getItem(SAVED_AT_KEY) || ''
-  if (explicit) return explicit
-  return tasks.reduce((max, t) => (t.updatedAt > max ? t.updatedAt : max), '')
+function hasPendingChanges(): boolean {
+  return localStorage.getItem(PENDING_KEY) === '1'
+}
+
+function markPending() {
+  localStorage.setItem(PENDING_KEY, '1')
+}
+
+function clearPending() {
+  localStorage.removeItem(PENDING_KEY)
 }
 
 export function useTasks() {
@@ -76,12 +82,13 @@ export function useTasks() {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       localStorage.setItem(SAVED_AT_KEY, savedAt)
+      clearPending() // 推送成功 → 清除脏标记
       setSyncStatus('synced')
-      retryCountRef.current = 0 // 成功后重置重试计数
+      retryCountRef.current = 0
     } catch (err) {
       console.warn('Cloud sync push failed:', err)
       setSyncStatus('error')
-      // 自动重试，最多 3 次，间隔 10s
+      // 自动重试
       if (retryCountRef.current < 3) {
         retryCountRef.current += 1
         if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
@@ -98,11 +105,18 @@ export function useTasks() {
     pushTimerRef.current = window.setTimeout(() => { pushNow() }, 1500)
   }, [pushNow])
 
-  // 初次：从云端拉取
+  // 初次：从云端拉取（但如果本地有未推送修改，先推送本地）
   useEffect(() => {
     let cancelled = false
 
     async function init() {
+      // 如果本地有未推送的修改，直接推送，不要 pull 覆盖
+      if (hasPendingChanges()) {
+        initialFetchDone.current = true
+        await pushNow()
+        return
+      }
+
       setSyncStatus('syncing')
       try {
         const res = await fetch('/api/sync')
@@ -113,7 +127,7 @@ export function useTasks() {
         if (cancelled) return
 
         const hasLocalHistory = !!localStorage.getItem(SAVED_AT_KEY)
-        const localSavedAt = readLocalSavedAt(dataRef.current.tasks)
+        const localSavedAt = localStorage.getItem(SAVED_AT_KEY) || ''
         const cloudSavedAt = cloud?.savedAt || ''
 
         if (cloud && cloudSavedAt && (!hasLocalHistory || cloudSavedAt >= localSavedAt)) {
@@ -126,9 +140,6 @@ export function useTasks() {
         } else if (hasLocalHistory && (!cloud || !cloudSavedAt || localSavedAt > cloudSavedAt)) {
           initialFetchDone.current = true
           await pushNow()
-        } else if (!cloud || !cloudSavedAt) {
-          setSyncStatus('synced')
-          initialFetchDone.current = true
         } else {
           setSyncStatus('synced')
           initialFetchDone.current = true
@@ -147,13 +158,14 @@ export function useTasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 数据变化 → 防抖推送
+  // 数据变化 → 标记脏 + 防抖推送
   useEffect(() => {
     if (isPullingRef.current) {
       isPullingRef.current = false
       return
     }
     if (initialFetchDone.current) {
+      markPending() // 关键：标记本地有未推送的修改
       schedulePush()
     }
   }, [tasks, enoTeam, schedulePush])
@@ -205,8 +217,12 @@ export function useTasks() {
     setENOTeam(team)
   }, [])
 
-  // 手动从云端拉取
+  // 从云端拉取（如果本地有未推送修改，自动改为推送，避免覆盖）
   const pullNow = useCallback(async () => {
+    if (hasPendingChanges()) {
+      // 本地有未推送的修改 → 推送，不要拉
+      return pushNow()
+    }
     setSyncStatus('syncing')
     try {
       const res = await fetch('/api/sync')
@@ -225,16 +241,15 @@ export function useTasks() {
     } catch (err) {
       console.warn('Cloud sync pull failed:', err)
       setSyncStatus('error')
-      // 自动重试，最多 3 次，间隔 10s
       if (retryCountRef.current < 3) {
         retryCountRef.current += 1
         if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current)
         retryTimerRef.current = window.setTimeout(() => { pullNow() }, 10_000)
       }
     }
-  }, [])
+  }, [pushNow])
 
-  // 切回页面时自动同步
+  // 切回页面时自动同步（pullNow 内部已经会判断脏标记，安全）
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible' && initialFetchDone.current) {
@@ -244,6 +259,25 @@ export function useTasks() {
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [pullNow])
+
+  // 关闭/刷新页面前，如果还有未推送的修改，尝试同步触发推送
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      if (hasPendingChanges()) {
+        // navigator.sendBeacon 在页面关闭时仍能发送请求
+        const payload = JSON.stringify({
+          tasks: dataRef.current.tasks,
+          enoTeam: dataRef.current.enoTeam,
+          savedAt: new Date().toISOString(),
+        })
+        try {
+          navigator.sendBeacon('/api/sync', new Blob([payload], { type: 'application/json' }))
+        } catch {}
+      }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
 
   return {
     tasks,
