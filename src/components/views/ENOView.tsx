@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Trash2, Plus, X } from 'lucide-react'
+import { Trash2, Plus, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { ENOMember, ENOSection, ENOTaskItem } from '../../types'
 
 // ── 行内可编辑文本 ─────────────────────────────────────────
@@ -58,6 +58,39 @@ function EditableText({ value, onChange, placeholder = '点击编辑', className
   )
 }
 
+// ── 移动按钮 ────────────────────────────────────────────────
+function MoveButtons({ onUp, onDown, canUp, canDown }: {
+  onUp: () => void; onDown: () => void; canUp: boolean; canDown: boolean
+}) {
+  return (
+    <div className="flex flex-col opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
+      <button
+        onClick={onUp}
+        disabled={!canUp}
+        className="p-0.5 rounded transition-colors hover:bg-stone-100 disabled:opacity-20 disabled:cursor-not-allowed"
+        style={{ color: '#9B7E50' }}
+      >
+        <ChevronUp size={11} />
+      </button>
+      <button
+        onClick={onDown}
+        disabled={!canDown}
+        className="p-0.5 rounded transition-colors hover:bg-stone-100 disabled:opacity-20 disabled:cursor-not-allowed"
+        style={{ color: '#9B7E50' }}
+      >
+        <ChevronDown size={11} />
+      </button>
+    </div>
+  )
+}
+
+function moveArr<T>(arr: T[], from: number, to: number): T[] {
+  const next = [...arr]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+
 // ── 单张成员卡片 ───────────────────────────────────────────
 interface MemberCardProps {
   member: ENOMember
@@ -68,42 +101,38 @@ interface MemberCardProps {
 function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
   const setSections = (sections: ENOSection[]) => onUpdate({ sections })
 
-  const updateSection = (idx: number, updates: Partial<ENOSection>) => {
+  const updateSection = (idx: number, updates: Partial<ENOSection>) =>
     setSections(member.sections.map((s, i) => i === idx ? { ...s, ...updates } : s))
-  }
 
-  const deleteSection = (idx: number) => {
+  const deleteSection = (idx: number) =>
     setSections(member.sections.filter((_, i) => i !== idx))
-  }
 
-  const addSection = () => {
+  const addSection = () =>
     setSections([...member.sections, { tag: '不定期', items: [{ name: '', qty: '' }] }])
-  }
 
-  const updateItem = (si: number, ii: number, updates: Partial<ENOTaskItem>) => {
+  const moveSection = (from: number, to: number) =>
+    setSections(moveArr(member.sections, from, to))
+
+  const updateItem = (si: number, ii: number, updates: Partial<ENOTaskItem>) =>
     updateSection(si, {
       items: member.sections[si].items.map((item, i) => i === ii ? { ...item, ...updates } : item),
     })
-  }
 
-  const addItem = (si: number) => {
-    updateSection(si, {
-      items: [...member.sections[si].items, { name: '', qty: '' }],
-    })
-  }
+  const addItem = (si: number) =>
+    updateSection(si, { items: [...member.sections[si].items, { name: '', qty: '' }] })
 
-  const deleteItem = (si: number, ii: number) => {
-    updateSection(si, {
-      items: member.sections[si].items.filter((_, i) => i !== ii),
-    })
-  }
+  const deleteItem = (si: number, ii: number) =>
+    updateSection(si, { items: member.sections[si].items.filter((_, i) => i !== ii) })
+
+  const moveItem = (si: number, from: number, to: number) =>
+    updateSection(si, { items: moveArr(member.sections[si].items, from, to) })
 
   return (
     <div
       className="bg-white rounded-sm relative group/card"
       style={{ border: '1px solid #EAE6DE', padding: '20px 22px' }}
     >
-      {/* 删除成员按钮（hover 显示） */}
+      {/* 删除成员按钮 */}
       <button
         onClick={onDelete}
         title="删除成员"
@@ -115,7 +144,7 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
         <Trash2 size={13} />
       </button>
 
-      {/* 卡片头部：姓名 + 角色 tag + 日均 */}
+      {/* 卡片头部 */}
       <div className="flex items-center justify-between mb-3 pr-6">
         <div className="flex items-center gap-2 min-w-0">
           <EditableText
@@ -123,43 +152,49 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
             onChange={v => onUpdate({ name: v })}
             placeholder="姓名"
             className="font-bold shrink-0"
-            style={{ fontSize: '19px', color: '#1A1A1A' }}
+            style={{ fontSize: '21px', color: '#1A1A1A' }}
           />
           <EditableText
             value={member.role}
             onChange={v => onUpdate({ role: v })}
             placeholder="角色"
-            className="text-[11px] px-1.5 py-0.5 rounded-sm shrink-0"
+            className="text-[12px] px-1.5 py-0.5 rounded-sm shrink-0"
             style={{ color: '#9B7E50', background: '#FAF6EF' }}
           />
         </div>
         <div className="flex items-center gap-1 shrink-0 ml-2">
-          <span className="text-[12px]" style={{ color: '#8A8A8A' }}>日均</span>
+          <span className="text-[13px]" style={{ color: '#8A8A8A' }}>日均</span>
           <EditableText
             value={member.metric}
             onChange={v => onUpdate({ metric: v })}
             placeholder="—"
-            className="text-[13px]"
+            className="text-[14px]"
             style={{ color: '#8A8A8A' }}
           />
         </div>
       </div>
 
       {/* 分隔线 */}
-      <div style={{ height: '1px', background: '#EAE6DE', marginBottom: '12px' }} />
+      <div style={{ height: '1px', background: '#EAE6DE', marginBottom: '14px' }} />
 
       {/* 各频率分组 */}
       <div className="space-y-4">
         {member.sections.map((section, si) => (
           <div key={si} className="group/section">
-            {/* 段标签 + 删除段按钮 */}
-            <div className="flex items-center gap-1.5 mb-1.5">
+            {/* 段标签行 */}
+            <div className="flex items-center gap-1.5 mb-2 group/row">
+              <MoveButtons
+                canUp={si > 0}
+                canDown={si < member.sections.length - 1}
+                onUp={() => moveSection(si, si - 1)}
+                onDown={() => moveSection(si, si + 1)}
+              />
               <EditableText
                 value={section.tag}
                 onChange={v => updateSection(si, { tag: v })}
                 placeholder="时间段"
-                className="tracking-wide"
-                style={{ fontSize: '15px', color: '#8A8A8A' }}
+                className="tracking-wide font-medium flex-1"
+                style={{ fontSize: '16px', color: '#555555' }}
               />
               <button
                 onClick={() => deleteSection(si)}
@@ -167,25 +202,30 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                 className="opacity-0 group-hover/section:opacity-100 transition-opacity p-0.5 rounded hover:bg-red-50"
                 style={{ color: '#C0B8AC' }}
               >
-                <X size={10} />
+                <X size={11} />
               </button>
             </div>
 
             {/* 任务列表 */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {section.items.map((item, ii) => (
-                <div key={ii} className="flex items-center gap-1 group/item">
+                <div key={ii} className="flex items-center gap-1.5 group/row group/item">
+                  <MoveButtons
+                    canUp={ii > 0}
+                    canDown={ii < section.items.length - 1}
+                    onUp={() => moveItem(si, ii, ii - 1)}
+                    onDown={() => moveItem(si, ii, ii + 1)}
+                  />
                   {/* Primary 切换点 */}
                   <button
                     onClick={() => updateItem(si, ii, { primary: !item.primary })}
                     title={item.primary ? '取消重点' : '标为重点'}
-                    className="shrink-0 w-3 h-3 rounded-full border transition-colors"
+                    className="shrink-0 w-3.5 h-3.5 rounded-full border transition-colors"
                     style={{
                       borderColor: item.primary ? '#9B7E50' : '#D4CEC6',
                       background: item.primary ? '#9B7E50' : 'transparent',
                     }}
                   />
-
                   {/* 任务名 */}
                   <EditableText
                     value={item.name}
@@ -193,29 +233,27 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
                     placeholder="任务名称"
                     className="flex-1"
                     style={{
-                      fontSize: '13px',
+                      fontSize: '15px',
                       color: item.primary ? '#1A1A1A' : '#555555',
                       fontWeight: item.primary ? 600 : 400,
                     }}
                   />
-
                   {/* 数量 */}
                   <EditableText
                     value={item.qty}
                     onChange={v => updateItem(si, ii, { qty: v })}
                     placeholder="—"
                     className="shrink-0 text-right"
-                    style={{ fontSize: '12px', color: '#8A8A8A', minWidth: '56px' }}
+                    style={{ fontSize: '14px', color: '#8A8A8A', minWidth: '56px' }}
                   />
-
-                  {/* 删除任务按钮 */}
+                  {/* 删除任务 */}
                   <button
                     onClick={() => deleteItem(si, ii)}
                     title="删除此任务"
-                    className="shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-red-50 ml-0.5"
+                    className="shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity p-0.5 rounded hover:bg-red-50"
                     style={{ color: '#C0B8AC' }}
                   >
-                    <X size={10} />
+                    <X size={11} />
                   </button>
                 </div>
               ))}
@@ -224,10 +262,10 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
             {/* + 添加任务 */}
             <button
               onClick={() => addItem(si)}
-              className="mt-1.5 flex items-center gap-1 text-[11px] transition-colors hover:opacity-80"
-              style={{ color: '#9B7E50' }}
+              className="mt-2 flex items-center gap-1 transition-colors hover:opacity-80"
+              style={{ fontSize: '12px', color: '#9B7E50' }}
             >
-              <Plus size={10} /> 添加任务
+              <Plus size={11} /> 添加任务
             </button>
           </div>
         ))}
@@ -236,10 +274,10 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
       {/* + 添加时间段 */}
       <button
         onClick={addSection}
-        className="mt-4 flex items-center gap-1 text-[11px] transition-colors hover:opacity-80 border-t pt-3 w-full"
-        style={{ color: '#9B7E50', borderColor: '#EAE6DE' }}
+        className="mt-4 flex items-center gap-1 transition-colors hover:opacity-80 border-t pt-3 w-full"
+        style={{ fontSize: '12px', color: '#9B7E50', borderColor: '#EAE6DE' }}
       >
-        <Plus size={10} /> 添加时间段
+        <Plus size={11} /> 添加时间段
       </button>
     </div>
   )
@@ -252,13 +290,11 @@ interface ENOViewProps {
 }
 
 export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
-  const updateMember = (id: string, updates: Partial<ENOMember>) => {
+  const updateMember = (id: string, updates: Partial<ENOMember>) =>
     onUpdateENOTeam(enoTeam.map(m => m.id === id ? { ...m, ...updates } : m))
-  }
 
-  const deleteMember = (id: string) => {
+  const deleteMember = (id: string) =>
     onUpdateENOTeam(enoTeam.filter(m => m.id !== id))
-  }
 
   const addMember = () => {
     const newMember: ENOMember = {
@@ -274,7 +310,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
       {/* 页头 */}
       <div className="mb-8 md:mb-10">
         <p
@@ -284,11 +320,9 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
           03 ROLE CARDS
         </p>
         <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold" style={{ color: '#1A1A1A' }}>
-              ENO 摄影部
-            </h1>
-          </div>
+          <h1 className="text-3xl md:text-4xl font-bold" style={{ color: '#1A1A1A' }}>
+            ENO 摄影部
+          </h1>
           <button
             onClick={addMember}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
@@ -299,7 +333,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
         </div>
       </div>
 
-      {/* 成员卡片网格 */}
+      {/* 成员卡片网格：手机 1 列，平板 2 列，桌面 3 列 */}
       {enoTeam.length === 0 ? (
         <div
           className="text-center py-16 rounded-sm"
@@ -315,7 +349,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {enoTeam.map(member => (
             <MemberCard
               key={member.id}
@@ -326,7 +360,6 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
           ))}
         </div>
       )}
-
     </div>
   )
 }
