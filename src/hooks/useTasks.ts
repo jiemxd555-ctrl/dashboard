@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Task, Review, ENOMember } from '../types'
-import { SAMPLE_TASKS, SAMPLE_REVIEWS } from '../utils/sampleData'
+import { Task, ENOMember } from '../types'
+import { SAMPLE_TASKS } from '../utils/sampleData'
 import { DEFAULT_ENO_TEAM } from '../utils/enoData'
-import { generateId, generateReviewId } from '../utils/taskUtils'
+import { generateId } from '../utils/taskUtils'
 
 const TASKS_KEY = 'dashboard_tasks'
-const REVIEWS_KEY = 'dashboard_reviews'
 const ENO_KEY = 'dashboard_eno_team'
 const SAVED_AT_KEY = 'dashboard_saved_at'
 
@@ -19,14 +18,6 @@ function loadTasks(): Task[] {
   return SAMPLE_TASKS
 }
 
-function loadReviews(): Review[] {
-  try {
-    const raw = localStorage.getItem(REVIEWS_KEY)
-    if (raw) return JSON.parse(raw) as Review[]
-  } catch {}
-  return SAMPLE_REVIEWS
-}
-
 function loadENOTeam(): ENOMember[] {
   try {
     const raw = localStorage.getItem(ENO_KEY)
@@ -36,29 +27,23 @@ function loadENOTeam(): ENOMember[] {
 }
 
 /** 取本地最近一次「同步标记」，没有则用本地任务的最新 updatedAt 当作隐式标记 */
-function readLocalSavedAt(tasks: Task[], reviews: Review[]): string {
+function readLocalSavedAt(tasks: Task[]): string {
   const explicit = localStorage.getItem(SAVED_AT_KEY) || ''
   if (explicit) return explicit
-  const fromTasks = tasks.reduce((max, t) => (t.updatedAt > max ? t.updatedAt : max), '')
-  const fromReviews = reviews.reduce((max, r) => (r.createdAt > max ? r.createdAt : max), '')
-  return fromTasks > fromReviews ? fromTasks : fromReviews
+  return tasks.reduce((max, t) => (t.updatedAt > max ? t.updatedAt : max), '')
 }
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>(loadTasks)
-  const [reviews, setReviews] = useState<Review[]>(loadReviews)
   const [enoTeam, setENOTeam] = useState<ENOMember[]>(loadENOTeam)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
-  // 用 ref 保证 push 时拿到最新数据
-  const dataRef = useRef({ tasks, reviews, enoTeam })
-  dataRef.current = { tasks, reviews, enoTeam }
+  const dataRef = useRef({ tasks, enoTeam })
+  dataRef.current = { tasks, enoTeam }
 
-  // 初次拉取是否完成；完成前不要触发 push（避免覆盖云端）
   const initialFetchDone = useRef(false)
   const pushTimerRef = useRef<number | null>(null)
   const inFlightRef = useRef(false)
-  // 正在从云端拉取数据时设为 true，防止拉取触发多余的 push
   const isPullingRef = useRef(false)
 
   // 持久化到 localStorage
@@ -67,14 +52,10 @@ export function useTasks() {
   }, [tasks])
 
   useEffect(() => {
-    localStorage.setItem(REVIEWS_KEY, JSON.stringify(reviews))
-  }, [reviews])
-
-  useEffect(() => {
     localStorage.setItem(ENO_KEY, JSON.stringify(enoTeam))
   }, [enoTeam])
 
-  // 推送到云端（立即）
+  // 推送到云端
   const pushNow = useCallback(async () => {
     if (inFlightRef.current) return
     inFlightRef.current = true
@@ -83,7 +64,6 @@ export function useTasks() {
       const savedAt = new Date().toISOString()
       const payload = {
         tasks: dataRef.current.tasks,
-        reviews: dataRef.current.reviews,
         enoTeam: dataRef.current.enoTeam,
         savedAt,
       }
@@ -103,16 +83,13 @@ export function useTasks() {
     }
   }, [])
 
-  // 防抖推送：1.5s 内的多次改动合并为一次上传
   const schedulePush = useCallback(() => {
     if (!initialFetchDone.current) return
     if (pushTimerRef.current) window.clearTimeout(pushTimerRef.current)
-    pushTimerRef.current = window.setTimeout(() => {
-      pushNow()
-    }, 1500)
+    pushTimerRef.current = window.setTimeout(() => { pushNow() }, 1500)
   }, [pushNow])
 
-  // 初次：从云端拉取，根据时间戳决定方向
+  // 初次：从云端拉取
   useEffect(() => {
     let cancelled = false
 
@@ -122,33 +99,28 @@ export function useTasks() {
         const res = await fetch('/api/sync')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const cloud = (await res.json()) as
-          | { tasks: Task[]; reviews: Review[]; enoTeam?: ENOMember[]; savedAt: string }
+          | { tasks: Task[]; enoTeam?: ENOMember[]; savedAt: string }
           | null
         if (cancelled) return
 
         const hasLocalHistory = !!localStorage.getItem(SAVED_AT_KEY)
-        const localSavedAt = readLocalSavedAt(dataRef.current.tasks, dataRef.current.reviews)
+        const localSavedAt = readLocalSavedAt(dataRef.current.tasks)
         const cloudSavedAt = cloud?.savedAt || ''
 
         if (cloud && cloudSavedAt && (!hasLocalHistory || cloudSavedAt >= localSavedAt)) {
-          // 云端有数据，且：本设备从未同步过（新设备/新浏览器），或云端更新 → 下行同步
           isPullingRef.current = true
           setTasks(cloud.tasks)
-          setReviews(cloud.reviews || [])
           if (cloud.enoTeam) setENOTeam(cloud.enoTeam)
           localStorage.setItem(SAVED_AT_KEY, cloudSavedAt)
           setSyncStatus('synced')
           initialFetchDone.current = true
         } else if (hasLocalHistory && (!cloud || !cloudSavedAt || localSavedAt > cloudSavedAt)) {
-          // 本设备有同步历史 且 本地更新（或云端空）→ 上行同步
           initialFetchDone.current = true
           await pushNow()
         } else if (!cloud || !cloudSavedAt) {
-          // 云端完全没数据 且 本地没历史 → 全新状态，不推送示例数据
           setSyncStatus('synced')
           initialFetchDone.current = true
         } else {
-          // 两端一致
           setSyncStatus('synced')
           initialFetchDone.current = true
         }
@@ -162,13 +134,11 @@ export function useTasks() {
     }
 
     init()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 数据变化 → 触发防抖推送（云端拉取引起的变化不推送，避免循环写入）
+  // 数据变化 → 防抖推送
   useEffect(() => {
     if (isPullingRef.current) {
       isPullingRef.current = false
@@ -177,7 +147,7 @@ export function useTasks() {
     if (initialFetchDone.current) {
       schedulePush()
     }
-  }, [tasks, reviews, enoTeam, schedulePush])
+  }, [tasks, enoTeam, schedulePush])
 
   // —— CRUD ——
   const addTask = useCallback((data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -203,15 +173,14 @@ export function useTasks() {
     ))
   }, [])
 
-  const importTasks = useCallback((data: { tasks?: Task[]; reviews?: Review[]; enoTeam?: ENOMember[] }) => {
+  const importTasks = useCallback((data: { tasks?: Task[]; enoTeam?: ENOMember[] }) => {
     if (data.tasks) setTasks(data.tasks)
-    if (data.reviews) setReviews(data.reviews)
     if (data.enoTeam) setENOTeam(data.enoTeam)
   }, [])
 
   const exportData = useCallback(() => {
     const blob = new Blob(
-      [JSON.stringify({ tasks, reviews, enoTeam, exportedAt: new Date().toISOString() }, null, 2)],
+      [JSON.stringify({ tasks, enoTeam, exportedAt: new Date().toISOString() }, null, 2)],
       { type: 'application/json' }
     )
     const url = URL.createObjectURL(blob)
@@ -220,40 +189,25 @@ export function useTasks() {
     a.download = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [tasks, reviews, enoTeam])
-
-  const addReview = useCallback((data: Omit<Review, 'id' | 'createdAt'>) => {
-    const now = new Date().toISOString()
-    const review: Review = { ...data, id: generateReviewId(), createdAt: now }
-    setReviews(prev => [review, ...prev])
-  }, [])
-
-  const updateReview = useCallback((id: string, data: Partial<Omit<Review, 'id' | 'createdAt'>>) => {
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, ...data } : r))
-  }, [])
-
-  const deleteReview = useCallback((id: string) => {
-    setReviews(prev => prev.filter(r => r.id !== id))
-  }, [])
+  }, [tasks, enoTeam])
 
   // —— ENO 团队 ——
   const updateENOTeam = useCallback((team: ENOMember[]) => {
     setENOTeam(team)
   }, [])
 
-  // 手动从云端重新拉取一次（用户主动点击同步按钮）
+  // 手动从云端拉取
   const pullNow = useCallback(async () => {
     setSyncStatus('syncing')
     try {
       const res = await fetch('/api/sync')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const cloud = (await res.json()) as
-        | { tasks: Task[]; reviews: Review[]; enoTeam?: ENOMember[]; savedAt: string }
+        | { tasks: Task[]; enoTeam?: ENOMember[]; savedAt: string }
         | null
       if (cloud && cloud.savedAt) {
         isPullingRef.current = true
         setTasks(cloud.tasks)
-        setReviews(cloud.reviews || [])
         if (cloud.enoTeam) setENOTeam(cloud.enoTeam)
         localStorage.setItem(SAVED_AT_KEY, cloud.savedAt)
       }
@@ -264,7 +218,7 @@ export function useTasks() {
     }
   }, [])
 
-  // 页面重新可见时（切回 app / 解锁屏幕）自动拉取最新数据
+  // 切回页面时自动同步
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible' && initialFetchDone.current) {
@@ -277,7 +231,6 @@ export function useTasks() {
 
   return {
     tasks,
-    reviews,
     enoTeam,
     syncStatus,
     addTask,
@@ -286,9 +239,6 @@ export function useTasks() {
     markDone,
     importTasks,
     exportData,
-    addReview,
-    updateReview,
-    deleteReview,
     updateENOTeam,
     pushNow,
     pullNow,

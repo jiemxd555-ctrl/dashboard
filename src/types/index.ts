@@ -35,18 +35,6 @@ export interface Task {
   updatedAt: string
 }
 
-export interface Review {
-  id: string
-  type: 'daily' | 'weekly'
-  date: string
-  completed: string
-  delayed: string
-  unimportant: string
-  nextTop3: string
-  shouldDrop: string
-  createdAt: string
-}
-
 export type ViewType = 'dashboard' | 'eno' | 'kanban' | 'domain' | 'timeline' | 'stress'
 
 // ── ENO 摄影部 ──────────────────────────────────────────

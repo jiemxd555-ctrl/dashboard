@@ -1,4 +1,4 @@
-import { Task, Review } from '../types'
+import { Task } from '../types'
 
 const now = new Date()
 const fmt = (d: Date) => d.toISOString()
@@ -319,16 +319,3 @@ export const SAMPLE_TASKS: Task[] = [
   },
 ]
 
-export const SAMPLE_REVIEWS: Review[] = [
-  {
-    id: 'review-001',
-    type: 'weekly',
-    date: new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0],
-    completed: '完成了 Q2 视觉规范初稿框架；审核了 3 组新品主图；完成了部门周会',
-    delayed: '素材库整理推迟，预算申请未提交',
-    unimportant: '参加了两个可以异步处理的会议，浪费了约 2 小时',
-    nextTop3: '1. 提交预算申请\n2. 新品拍摄统筹\n3. 推进 ComfyUI 工作流落地',
-    shouldDrop: '暂停「整理储物间」，本周精力不够',
-    createdAt: fmt(new Date(now.getTime() - 7 * 86400000)),
-  },
-]

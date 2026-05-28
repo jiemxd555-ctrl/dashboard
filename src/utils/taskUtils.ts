@@ -76,10 +76,6 @@ export function generateId(): string {
   return `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
 
-export function generateReviewId(): string {
-  return `review-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-}
-
 export function formatMinutes(minutes: number): string {
   if (minutes < 60) return `${minutes}min`
   const h = Math.floor(minutes / 60)
