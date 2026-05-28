@@ -47,7 +47,7 @@ export interface Review {
   createdAt: string
 }
 
-export type ViewType = 'dashboard' | 'kanban' | 'domain' | 'eno' | 'timeline' | 'stress' | 'review'
+export type ViewType = 'dashboard' | 'eno' | 'kanban' | 'domain' | 'timeline' | 'stress'
 
 // ── ENO 摄影部 ──────────────────────────────────────────
 export interface ENOTaskItem {

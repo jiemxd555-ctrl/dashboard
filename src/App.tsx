@@ -7,7 +7,6 @@ import { DomainView } from './components/views/DomainView'
 import { ENOView } from './components/views/ENOView'
 import { TimelineView } from './components/views/TimelineView'
 import { StressView } from './components/views/StressView'
-import { ReviewView } from './components/views/ReviewView'
 import { Modal } from './components/ui/Modal'
 import { TaskForm } from './components/task/TaskForm'
 import { TaskDetailModal } from './components/task/TaskDetailModal'
@@ -16,10 +15,9 @@ import { Task, ViewType, TaskStatus } from './types'
 
 export default function App() {
   const {
-    tasks, reviews, enoTeam, syncStatus,
+    tasks, enoTeam, syncStatus,
     addTask, updateTask, deleteTask, markDone,
     importTasks, exportData,
-    addReview, updateReview, deleteReview,
     updateENOTeam,
     pullNow,
   } = useTasks()
@@ -87,14 +85,6 @@ export default function App() {
             tasks={tasks}
             onTaskClick={commonProps.onTaskClick}
             onMarkDone={commonProps.onMarkDone}
-          />
-        )}
-        {view === 'review' && (
-          <ReviewView
-            reviews={reviews}
-            onAddReview={addReview}
-            onUpdateReview={updateReview}
-            onDeleteReview={deleteReview}
           />
         )}
       </main>
