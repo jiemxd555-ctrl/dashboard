@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Task, ENOMember } from '../types'
+import { Task, ENOMember, ENOTaskItem } from '../types'
 import { SAMPLE_TASKS } from '../utils/sampleData'
 import { DEFAULT_ENO_TEAM } from '../utils/enoData'
 import { generateId } from '../utils/taskUtils'
 
 const TASKS_KEY = 'dashboard_tasks'
 const ENO_KEY = 'dashboard_eno_team'
+const ENO_OVERVIEW_KEY = 'dashboard_eno_overview'
 const SAVED_AT_KEY = 'dashboard_saved_at'
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'offline' | 'error'
@@ -26,6 +27,14 @@ function loadENOTeam(): ENOMember[] {
   return DEFAULT_ENO_TEAM
 }
 
+function loadENOOverview(): ENOTaskItem[] {
+  try {
+    const raw = localStorage.getItem(ENO_OVERVIEW_KEY)
+    if (raw) return JSON.parse(raw) as ENOTaskItem[]
+  } catch {}
+  return []
+}
+
 /** 取本地最近一次「同步标记」，没有则用本地任务的最新 updatedAt 当作隐式标记 */
 function readLocalSavedAt(tasks: Task[]): string {
   const explicit = localStorage.getItem(SAVED_AT_KEY) || ''
@@ -36,10 +45,11 @@ function readLocalSavedAt(tasks: Task[]): string {
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>(loadTasks)
   const [enoTeam, setENOTeam] = useState<ENOMember[]>(loadENOTeam)
+  const [enoOverview, setENOOverview] = useState<ENOTaskItem[]>(loadENOOverview)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle')
 
-  const dataRef = useRef({ tasks, enoTeam })
-  dataRef.current = { tasks, enoTeam }
+  const dataRef = useRef({ tasks, enoTeam, enoOverview })
+  dataRef.current = { tasks, enoTeam, enoOverview }
 
   const initialFetchDone = useRef(false)
   const pushTimerRef = useRef<number | null>(null)
@@ -57,6 +67,10 @@ export function useTasks() {
     localStorage.setItem(ENO_KEY, JSON.stringify(enoTeam))
   }, [enoTeam])
 
+  useEffect(() => {
+    localStorage.setItem(ENO_OVERVIEW_KEY, JSON.stringify(enoOverview))
+  }, [enoOverview])
+
   // 推送到云端
   const pushNow = useCallback(async () => {
     if (inFlightRef.current) return
@@ -67,6 +81,7 @@ export function useTasks() {
       const payload = {
         tasks: dataRef.current.tasks,
         enoTeam: dataRef.current.enoTeam,
+        enoOverview: dataRef.current.enoOverview,
         savedAt,
       }
       const res = await fetch('/api/sync', {
@@ -108,7 +123,7 @@ export function useTasks() {
         const res = await fetch('/api/sync')
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const cloud = (await res.json()) as
-          | { tasks: Task[]; enoTeam?: ENOMember[]; savedAt: string }
+          | { tasks: Task[]; enoTeam?: ENOMember[]; enoOverview?: ENOTaskItem[]; savedAt: string }
           | null
         if (cancelled) return
 
@@ -120,6 +135,7 @@ export function useTasks() {
           isPullingRef.current = true
           setTasks(cloud.tasks)
           if (cloud.enoTeam) setENOTeam(cloud.enoTeam)
+          if (cloud.enoOverview) setENOOverview(cloud.enoOverview)
           localStorage.setItem(SAVED_AT_KEY, cloudSavedAt)
           setSyncStatus('synced')
           initialFetchDone.current = true
@@ -182,14 +198,15 @@ export function useTasks() {
     ))
   }, [])
 
-  const importTasks = useCallback((data: { tasks?: Task[]; enoTeam?: ENOMember[] }) => {
+  const importTasks = useCallback((data: { tasks?: Task[]; enoTeam?: ENOMember[]; enoOverview?: ENOTaskItem[] }) => {
     if (data.tasks) setTasks(data.tasks)
     if (data.enoTeam) setENOTeam(data.enoTeam)
+    if (data.enoOverview) setENOOverview(data.enoOverview)
   }, [])
 
   const exportData = useCallback(() => {
     const blob = new Blob(
-      [JSON.stringify({ tasks, enoTeam, exportedAt: new Date().toISOString() }, null, 2)],
+      [JSON.stringify({ tasks, enoTeam, enoOverview, exportedAt: new Date().toISOString() }, null, 2)],
       { type: 'application/json' }
     )
     const url = URL.createObjectURL(blob)
@@ -198,11 +215,15 @@ export function useTasks() {
     a.download = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [tasks, enoTeam])
+  }, [tasks, enoTeam, enoOverview])
 
   // —— ENO 团队 ——
   const updateENOTeam = useCallback((team: ENOMember[]) => {
     setENOTeam(team)
+  }, [])
+
+  const updateENOOverview = useCallback((items: ENOTaskItem[]) => {
+    setENOOverview(items)
   }, [])
 
   // 手动从云端拉取
@@ -212,12 +233,13 @@ export function useTasks() {
       const res = await fetch('/api/sync')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const cloud = (await res.json()) as
-        | { tasks: Task[]; enoTeam?: ENOMember[]; savedAt: string }
+        | { tasks: Task[]; enoTeam?: ENOMember[]; enoOverview?: ENOTaskItem[]; savedAt: string }
         | null
       if (cloud && cloud.savedAt) {
         isPullingRef.current = true
         setTasks(cloud.tasks)
         if (cloud.enoTeam) setENOTeam(cloud.enoTeam)
+        if (cloud.enoOverview) setENOOverview(cloud.enoOverview)
         localStorage.setItem(SAVED_AT_KEY, cloud.savedAt)
       }
       setSyncStatus('synced')
@@ -237,6 +259,7 @@ export function useTasks() {
   return {
     tasks,
     enoTeam,
+    enoOverview,
     syncStatus,
     addTask,
     updateTask,
@@ -245,6 +268,7 @@ export function useTasks() {
     importTasks,
     exportData,
     updateENOTeam,
+    updateENOOverview,
     pushNow,
     pullNow,
   }

@@ -284,48 +284,98 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
 }
 
 // ── 团队总览面板 ───────────────────────────────────────────
-function TeamOverview({ team }: { team: ENOMember[] }) {
-  if (team.length === 0) return null
+interface TeamOverviewProps {
+  items: ENOTaskItem[]
+  onUpdate: (items: ENOTaskItem[]) => void
+}
 
-  // 把所有成员的所有任务铺平
-  const allItems = team.flatMap(m =>
-    m.sections.flatMap(s => s.items)
-  ).filter(item => item.name.trim() !== '')
+function TeamOverview({ items, onUpdate }: TeamOverviewProps) {
+  const [adding, setAdding] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newQty, setNewQty] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  if (allItems.length === 0) return null
+  useEffect(() => {
+    if (adding) inputRef.current?.focus()
+  }, [adding])
+
+  const confirm = () => {
+    const name = newName.trim()
+    if (name) onUpdate([...items, { name, qty: newQty.trim() }])
+    setNewName('')
+    setNewQty('')
+    setAdding(false)
+  }
+
+  const remove = (i: number) => onUpdate(items.filter((_, idx) => idx !== i))
 
   return (
     <div
       className="mb-6 rounded-sm px-5 py-4"
       style={{ border: '1px solid #EAE6DE', background: '#FAF8F5' }}
     >
-      <div className="flex items-baseline gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3">
         <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#9B7E50' }}>
           部门产出
         </span>
-        <span className="text-xs" style={{ color: '#C0B8AC' }}>共 {allItems.length} 项</span>
+        {items.length > 0 && (
+          <span className="text-xs" style={{ color: '#C0B8AC' }}>共 {items.length} 项</span>
+        )}
       </div>
-      <div className="flex flex-wrap gap-2">
-        {allItems.map((item, i) => (
+
+      <div className="flex flex-wrap gap-2 items-center">
+        {items.map((item, i) => (
           <span
             key={i}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs"
-            style={{
-              background: item.primary ? '#1A1A1A' : '#EDE9E2',
-              color: item.primary ? '#fff' : '#555555',
-            }}
+            className="group/tag inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs"
+            style={{ background: '#EDE9E2', color: '#444444' }}
           >
-            {item.name}
+            <span>{item.name}</span>
             {item.qty && (
-              <span
-                className="font-semibold"
-                style={{ color: item.primary ? '#D4A96A' : '#9B7E50' }}
-              >
-                {item.qty}
-              </span>
+              <span className="font-semibold" style={{ color: '#9B7E50' }}>{item.qty}</span>
             )}
+            <button
+              onClick={() => remove(i)}
+              className="ml-0.5 opacity-0 group-hover/tag:opacity-100 transition-opacity rounded-full hover:bg-stone-300"
+              style={{ color: '#9B7E50', lineHeight: 1 }}
+            >
+              <X size={10} />
+            </button>
           </span>
         ))}
+
+        {/* 添加表单 */}
+        {adding ? (
+          <span className="inline-flex items-center gap-1">
+            <input
+              ref={inputRef}
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') setAdding(false) }}
+              placeholder="任务名称"
+              className="text-xs px-2 py-1 rounded-sm outline-none"
+              style={{ border: '1px solid #9B7E50', background: '#fff', width: 100 }}
+            />
+            <input
+              value={newQty}
+              onChange={e => setNewQty(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') confirm(); if (e.key === 'Escape') setAdding(false) }}
+              placeholder="数量"
+              className="text-xs px-2 py-1 rounded-sm outline-none"
+              style={{ border: '1px solid #D4C4A8', background: '#fff', width: 56 }}
+            />
+            <button onClick={confirm} className="text-xs px-2 py-1 rounded-sm" style={{ background: '#9B7E50', color: '#fff' }}>确认</button>
+            <button onClick={() => setAdding(false)} className="text-xs px-1.5 py-1 rounded-sm" style={{ color: '#9B7E50' }}>取消</button>
+          </span>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-sm text-xs transition-colors hover:opacity-80"
+            style={{ border: '1px dashed #C4B89A', color: '#9B7E50', background: 'transparent' }}
+          >
+            <Plus size={10} /> 添加
+          </button>
+        )}
       </div>
     </div>
   )
@@ -335,9 +385,11 @@ function TeamOverview({ team }: { team: ENOMember[] }) {
 interface ENOViewProps {
   enoTeam: ENOMember[]
   onUpdateENOTeam: (team: ENOMember[]) => void
+  enoOverview: ENOTaskItem[]
+  onUpdateENOOverview: (items: ENOTaskItem[]) => void
 }
 
-export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
+export function ENOView({ enoTeam, onUpdateENOTeam, enoOverview, onUpdateENOOverview }: ENOViewProps) {
   const [activeId, setActiveId] = useState<string | 'all'>('all')
 
   const updateMember = useCallback((id: string, updates: Partial<ENOMember>) =>
@@ -418,7 +470,7 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
       </div>
 
       {/* 团队总览 */}
-      <TeamOverview team={displayed} />
+      <TeamOverview items={enoOverview} onUpdate={onUpdateENOOverview} />
 
       {/* 成员卡片网格 */}
       {enoTeam.length === 0 ? (

@@ -11,6 +11,7 @@ const STORAGE_KEY = 'dashboard:user-data'
 interface PayloadIn {
   tasks: unknown[]
   enoTeam?: unknown[]
+  enoOverview?: unknown[]
   savedAt: string
 }
 
@@ -37,6 +38,7 @@ export default async function handler(req: any, res: any) {
       const payload: PayloadIn = {
         tasks: body.tasks,
         enoTeam: Array.isArray(body.enoTeam) ? body.enoTeam : [],
+        enoOverview: Array.isArray(body.enoOverview) ? body.enoOverview : [],
         savedAt: body.savedAt,
       }
       await redis.set(STORAGE_KEY, payload)
