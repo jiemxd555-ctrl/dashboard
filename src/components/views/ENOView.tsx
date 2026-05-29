@@ -469,9 +469,6 @@ export function ENOView({ enoTeam, onUpdateENOTeam, enoOverview, onUpdateENOOver
         )}
       </div>
 
-      {/* 团队总览 */}
-      <TeamOverview items={enoOverview} onUpdate={onUpdateENOOverview} />
-
       {/* 成员卡片网格 */}
       {enoTeam.length === 0 ? (
         <div
