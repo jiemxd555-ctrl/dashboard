@@ -283,6 +283,120 @@ function MemberCard({ member, onUpdate, onDelete }: MemberCardProps) {
   )
 }
 
+// ── 团队总览面板 ───────────────────────────────────────────
+function TeamOverview({ team }: { team: ENOMember[] }) {
+  if (team.length === 0) return null
+
+  // 收集所有出现过的 tag，保持顺序（先出现的在前）
+  const allTags: string[] = []
+  team.forEach(m =>
+    m.sections.forEach(s => {
+      if (!allTags.includes(s.tag)) allTags.push(s.tag)
+    })
+  )
+
+  return (
+    <div
+      className="mb-6 rounded-sm overflow-hidden"
+      style={{ border: '1px solid #EAE6DE', background: '#fff' }}
+    >
+      {/* 面板标题 */}
+      <div
+        className="px-5 py-3 flex items-center gap-2"
+        style={{ borderBottom: '1px solid #EAE6DE', background: '#FAF8F5' }}
+      >
+        <span className="text-xs font-semibold tracking-widest uppercase" style={{ color: '#9B7E50' }}>
+          Team Overview
+        </span>
+        <span className="text-xs" style={{ color: '#C0B8AC' }}>
+          · {team.length} 人 · {team.reduce((n, m) => n + m.sections.reduce((s, sec) => s + sec.items.length, 0), 0)} 项任务
+        </span>
+      </div>
+
+      {/* 表格 */}
+      <div className="overflow-x-auto" style={{ scrollbarWidth: 'thin' }}>
+        <table className="w-full min-w-max border-collapse">
+          <thead>
+            <tr style={{ borderBottom: '1px solid #EAE6DE' }}>
+              {/* 左侧时间段列 */}
+              <th
+                className="text-left px-4 py-2.5 text-xs font-medium tracking-wide w-20"
+                style={{ color: '#9B7E50', background: '#FAF8F5', borderRight: '1px solid #EAE6DE' }}
+              >
+                时间段
+              </th>
+              {team.map(m => (
+                <th
+                  key={m.id}
+                  className="text-left px-4 py-2.5 text-xs font-semibold"
+                  style={{ color: '#1A1A1A', background: '#FAF8F5' }}
+                >
+                  <div>{m.name}</div>
+                  <div className="text-[10px] font-normal mt-0.5" style={{ color: '#9B7E50' }}>{m.role}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {allTags.map((tag, ti) => (
+              <tr
+                key={tag}
+                style={{
+                  borderBottom: ti < allTags.length - 1 ? '1px solid #F0EDE8' : 'none',
+                  background: ti % 2 === 0 ? '#fff' : '#FDFCFB',
+                }}
+              >
+                {/* 时间段标签 */}
+                <td
+                  className="px-4 py-3 text-xs font-medium align-top"
+                  style={{ color: '#8A8A8A', borderRight: '1px solid #EAE6DE', whiteSpace: 'nowrap' }}
+                >
+                  {tag}
+                </td>
+                {team.map(m => {
+                  const section = m.sections.find(s => s.tag === tag)
+                  return (
+                    <td key={m.id} className="px-4 py-3 align-top" style={{ minWidth: '150px' }}>
+                      {section ? (
+                        <ul className="space-y-1">
+                          {section.items.map((item, ii) => (
+                            <li key={ii} className="flex items-start gap-1.5">
+                              <span
+                                className="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full"
+                                style={{ background: item.primary ? '#9B7E50' : '#D4CEC6' }}
+                              />
+                              <span
+                                className="text-xs leading-relaxed"
+                                style={{
+                                  color: item.primary ? '#1A1A1A' : '#666666',
+                                  fontWeight: item.primary ? 600 : 400,
+                                }}
+                              >
+                                {item.name || '—'}
+                                {item.qty && (
+                                  <span className="ml-1" style={{ color: '#9B7E50', fontSize: '11px' }}>
+                                    {item.qty}
+                                  </span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-xs" style={{ color: '#D4CEC6' }}>—</span>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
 // ── 主视图 ─────────────────────────────────────────────────
 interface ENOViewProps {
   enoTeam: ENOMember[]
@@ -368,6 +482,9 @@ export function ENOView({ enoTeam, onUpdateENOTeam }: ENOViewProps) {
           </div>
         )}
       </div>
+
+      {/* 团队总览 */}
+      <TeamOverview team={displayed} />
 
       {/* 成员卡片网格 */}
       {enoTeam.length === 0 ? (
