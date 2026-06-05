@@ -91,7 +91,7 @@ export function getTop3Tasks(tasks: Task[]): Task[] {
       const scoreB = b.importance * 3 + b.urgency * 2 + b.longTermValue * 2 - b.difficulty
       return scoreB - scoreA
     })
-    .slice(0, 3)
+    .slice(0, 5)
 }
 
 /** 给某个领域当前的待办数量一个简单文字判断 */

@@ -2,8 +2,8 @@ import React from 'react'
 import { Clock, TrendingUp, Zap, Plus, Inbox, Play, AlertTriangle } from 'lucide-react'
 import { Task, AREA_LABELS, AREA_DOT } from '../../types'
 import {
-  isDueToday, isDueThisWeek, isOverdue, getTop3Tasks,
-  formatMinutes, sumEstimatedMinutes, sortByPriority, getAreaLoadLabel,
+  isDueToday, isOverdue, getTop3Tasks,
+  formatMinutes, sumEstimatedMinutes, getAreaLoadLabel,
 } from '../../utils/taskUtils'
 import { TaskCard } from '../task/TaskCard'
 import { format } from 'date-fns'
@@ -38,9 +38,7 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
   const todayTasks = active.filter(t => isDueToday(t) && !isOverdue(t))
   const overdueTasks = active.filter(isOverdue)
   const top3 = getTop3Tasks(tasks)
-  const weekTasks = sortByPriority(
-    active.filter(t => isDueThisWeek(t) && !isOverdue(t) && !isDueToday(t))
-  ).slice(0, 5)
+  const ideaTasks = tasks.filter(t => t.status === 'idea')
 
   const inProgressCount = active.filter(t => t.status === 'in_progress').length
   const highPriorityCount = active.filter(t => t.importance >= 4 && t.urgency >= 4).length
@@ -72,9 +70,9 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
   )
 
   /* Empty state shared */
-  const emptyWeek = (
+  const emptyIdea = (
     <div className="flex items-center justify-between text-xs">
-      <span className="text-stone-400">本周暂无重点推进任务</span>
+      <span className="text-stone-400">还没有幻想中的事</span>
       <button onClick={onAddTask} className="text-stone-500 hover:text-stone-900 transition-colors">
         + 添加
       </button>
@@ -134,7 +132,7 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
         <div className="bg-white rounded-2xl border border-stone-100 ring-1 ring-stone-200">
           <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-stone-50">
             <TrendingUp size={14} className="text-stone-700" />
-            <span className="text-xs font-semibold text-stone-800 uppercase tracking-wider">最重要 3 件事</span>
+            <span className="text-xs font-semibold text-stone-800 uppercase tracking-wider">最重要 5 件事</span>
           </div>
           <div className="px-4 py-3 space-y-2">
             {top3.length === 0
@@ -170,17 +168,17 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
           </div>
         </div>
 
-        {/* This week */}
+        {/* Ideas */}
         <div className="bg-white rounded-2xl border border-stone-100">
           <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-stone-50">
-            <Zap size={14} className="text-amber-400" />
-            <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">本周待推进</span>
-            {weekTasks.length > 0 && <span className="ml-auto text-xs text-stone-400">{weekTasks.length} 项</span>}
+            <Zap size={14} className="text-violet-400" />
+            <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">幻想中</span>
+            {ideaTasks.length > 0 && <span className="ml-auto text-xs text-stone-400">{ideaTasks.length} 项</span>}
           </div>
           <div className="px-4 py-3 space-y-2">
-            {weekTasks.length === 0
-              ? <div className="py-1">{emptyWeek}</div>
-              : weekTasks.map(task => (
+            {ideaTasks.length === 0
+              ? <div className="py-1">{emptyIdea}</div>
+              : ideaTasks.map(task => (
                 <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} onMarkDone={() => onMarkDone(task.id)} compact />
               ))
             }
@@ -231,7 +229,7 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
             <div className="bg-white rounded-2xl border border-stone-100 ring-1 ring-stone-200 flex flex-col min-h-0 flex-1">
               <div className="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-stone-50 flex-shrink-0">
                 <TrendingUp size={14} className="text-stone-700" />
-                <span className="text-xs font-semibold text-stone-800 uppercase tracking-wider">最重要 3 件事</span>
+                <span className="text-xs font-semibold text-stone-800 uppercase tracking-wider">最重要 5 件事</span>
                 <span className="ml-auto text-[10px] text-stone-400">今天先做这些</span>
               </div>
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
@@ -267,17 +265,17 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
             </div>
           </div>
 
-          {/* Center: This week */}
+          {/* Center: Ideas */}
           <div className="col-span-2 bg-white rounded-2xl border border-stone-100 flex flex-col min-h-0">
             <div className="flex items-center gap-2 px-5 pt-4 pb-3 border-b border-stone-50 flex-shrink-0">
-              <Zap size={14} className="text-amber-400" />
-              <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">本周待推进</span>
-              {weekTasks.length > 0 && <span className="ml-auto text-xs text-stone-400">{weekTasks.length} 项</span>}
+              <Zap size={14} className="text-violet-400" />
+              <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">幻想中</span>
+              {ideaTasks.length > 0 && <span className="ml-auto text-xs text-stone-400">{ideaTasks.length} 项</span>}
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-              {weekTasks.length === 0
-                ? <div className="py-2">{emptyWeek}</div>
-                : weekTasks.map(task => (
+              {ideaTasks.length === 0
+                ? <div className="py-2">{emptyIdea}</div>
+                : ideaTasks.map(task => (
                   <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} onMarkDone={() => onMarkDone(task.id)} compact />
                 ))
               }
