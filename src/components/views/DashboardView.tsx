@@ -1,9 +1,9 @@
 import React from 'react'
 import { Clock, TrendingUp, Zap, Plus, Inbox, Play, AlertTriangle } from 'lucide-react'
-import { Task, AREA_LABELS, AREA_DOT } from '../../types'
+import { Task } from '../../types'
 import {
   isDueToday, isOverdue, getTop3Tasks,
-  formatMinutes, sumEstimatedMinutes, getAreaLoadLabel,
+  formatMinutes, sumEstimatedMinutes,
 } from '../../utils/taskUtils'
 import { TaskCard } from '../task/TaskCard'
 import { format } from 'date-fns'
@@ -44,16 +44,6 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
   const highPriorityCount = active.filter(t => t.importance >= 4 && t.urgency >= 4).length
   const todayMinutes = sumEstimatedMinutes([...todayTasks, ...overdueTasks])
 
-  const areaStats = (['work', 'learning', 'finance', 'life'] as const).map(area => {
-    const areaTasks = active.filter(t => t.area === area)
-    return {
-      area,
-      count: areaTasks.length,
-      load: getAreaLoadLabel(areaTasks.length),
-    }
-  })
-  const maxCount = Math.max(...areaStats.map(a => a.count), 1)
-
   const today = format(new Date(), 'M月d日 EEEE', { locale: zhCN })
 
   /* Summary bar — shared between mobile & desktop */
@@ -76,32 +66,6 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
       <button onClick={onAddTask} className="text-stone-500 hover:text-stone-900 transition-colors">
         + 添加
       </button>
-    </div>
-  )
-
-  /* Domain bar item with status label */
-  const DomainBar = ({ area, count, label, color }: typeof areaStats[number]['load'] & { area: typeof areaStats[number]['area']; count: number }) => (
-    <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${AREA_DOT[area]}`} />
-          <span className="text-xs text-stone-500 truncate">{AREA_LABELS[area]}</span>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`text-[10px] ${color}`}>{label}</span>
-          <span className="text-xs text-stone-400 font-medium w-4 text-right">{count}</span>
-        </div>
-      </div>
-      <div className="bg-stone-100 rounded-full h-1 overflow-hidden">
-        <div
-          className={`h-full rounded-full ${
-            area === 'work' ? 'bg-slate-500' :
-            area === 'learning' ? 'bg-amber-500' :
-            area === 'finance' ? 'bg-emerald-500' : 'bg-sky-500'
-          }`}
-          style={{ width: `${(count / maxCount) * 100}%` }}
-        />
-      </div>
     </div>
   )
 
@@ -185,18 +149,6 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
           </div>
         </div>
 
-        {/* Domain stats */}
-        <div className="bg-white rounded-2xl border border-stone-100 px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">各领域</span>
-            <span className="text-xs text-stone-400">{active.length} 项待办</span>
-          </div>
-          <div className="space-y-3">
-            {areaStats.map(({ area, count, load }) => (
-              <DomainBar key={area} area={area} count={count} {...load} />
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* ── Desktop layout ── */}
@@ -220,8 +172,8 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
           {summaryItems}
         </div>
 
-        {/* 5-col grid */}
-        <div className="flex-1 grid grid-cols-5 gap-4 min-h-0">
+        {/* Main grid */}
+        <div className="flex-1 grid grid-cols-4 gap-4 min-h-0">
 
           {/* Left col: Top3 + Today */}
           <div className="col-span-2 flex flex-col gap-4 min-h-0">
@@ -279,19 +231,6 @@ export function DashboardView({ tasks, onTaskClick, onMarkDone, onAddTask }: Das
                   <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} onMarkDone={() => onMarkDone(task.id)} compact />
                 ))
               }
-            </div>
-          </div>
-
-          {/* Right: Domain */}
-          <div className="col-span-1 bg-white rounded-2xl border border-stone-100 flex flex-col min-h-0">
-            <div className="px-5 pt-4 pb-3 border-b border-stone-50 flex-shrink-0">
-              <span className="text-xs font-semibold text-stone-600 uppercase tracking-wider">各领域</span>
-              <div className="text-xs text-stone-400 mt-0.5">{active.length} 项待办</div>
-            </div>
-            <div className="flex-1 px-5 py-4 flex flex-col justify-center gap-4">
-              {areaStats.map(({ area, count, load }) => (
-                <DomainBar key={area} area={area} count={count} {...load} />
-              ))}
             </div>
           </div>
 
