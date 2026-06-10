@@ -164,6 +164,56 @@ interface ENOTaskItem {
 
 ---
 
+## 每日私人简报同步
+
+- 网站中的「每日私人简报」页面对应：
+  - `src/components/views/DailyBriefingView.tsx`
+- 日报来源不是任务数据，而是本机自动生成的 HTML 文件。
+- 自动化日报真实目录：
+  - `/Users/a/daily-briefings`
+- 桌面入口只是软链接：
+  - `/Users/a/Desktop/daily -> /Users/a/daily-briefings`
+
+### 同步方式
+
+- 网站新增独立接口：
+  - `api/briefing.ts`
+- Redis 独立 key：
+  - `dashboard:daily-briefing`
+- 只保留 **当天最新一份** HTML，不做历史归档。
+- 前端展示方式：
+  - `DailyBriefingView.tsx` 使用 `iframe srcDoc` 原样展示 HTML，尽量保留日报自己的排版、字体、分隔线和移动端样式。
+
+### 本地上传脚本
+
+- Node 脚本：
+  - `scripts/sync-daily-briefing.mjs`
+- Shell 包装：
+  - `scripts/sync-daily-briefing.sh`
+- 默认行为：
+  - 从 `/Users/a/daily-briefings` 里寻找当天 `YYYY-MM-DD.html` 或 `YYYY-MM-DD-v2.html` 等版本文件
+  - 选最近修改的一份
+  - POST 到 `https://jie-board.com/api/briefing`
+
+### 可选环境变量
+
+```bash
+BRIEFING_SOURCE_DIR=/Users/a/daily-briefings
+BRIEFING_SYNC_URL=https://jie-board.com/api/briefing
+BRIEFING_SYNC_TOKEN=
+BRIEFING_DATE=2026-06-10
+```
+
+- `BRIEFING_SYNC_TOKEN` 仅在服务端和本地同时配置时启用校验。
+- 如果 Vercel 没配 `BRIEFING_SYNC_TOKEN`，接口默认允许上传，优先保证链路先跑通。
+
+### 风险提醒
+
+- 不要把每日简报内容塞进现有 `api/sync.ts` 的任务同步 payload。
+- 原因：任务同步和日报同步是两条不同的数据链路，绑在一起后很容易重演之前“删字段导致整站同步失败”的坑。
+
+---
+
 ## 环境变量（Vercel 配置）
 
 ```
