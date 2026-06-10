@@ -1,6 +1,7 @@
 import React from 'react'
 import {
   LayoutDashboard,
+  Newspaper,
   Columns3,
   Tag,
   Clock,
@@ -28,6 +29,7 @@ interface SidebarProps {
 
 const NAV_ITEMS: { id: ViewType; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: '今日驾驶舱', icon: <LayoutDashboard size={16} /> },
+  { id: 'briefing', label: '每日私人简报', icon: <Newspaper size={16} /> },
   { id: 'eno', label: 'ENO 摄影部', icon: <Camera size={16} /> },
   { id: 'kanban', label: '任务看板', icon: <Columns3 size={16} /> },
   { id: 'domain', label: '领域视图', icon: <Tag size={16} /> },

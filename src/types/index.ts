@@ -35,7 +35,7 @@ export interface Task {
   updatedAt: string
 }
 
-export type ViewType = 'dashboard' | 'eno' | 'kanban' | 'domain' | 'timeline' | 'stress'
+export type ViewType = 'dashboard' | 'briefing' | 'eno' | 'kanban' | 'domain' | 'timeline' | 'stress'
 
 // ── ENO 摄影部 ──────────────────────────────────────────
 export interface ENOTaskItem {

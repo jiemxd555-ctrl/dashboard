@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutDashboard, Columns3, Tag, Clock, Camera } from 'lucide-react'
+import { LayoutDashboard, Newspaper, Columns3, Tag, Clock, Camera } from 'lucide-react'
 import { ViewType } from '../../types'
 
 interface BottomNavProps {
@@ -9,6 +9,7 @@ interface BottomNavProps {
 
 const NAV: { id: ViewType; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: '今日', icon: <LayoutDashboard size={20} /> },
+  { id: 'briefing',  label: '简报', icon: <Newspaper size={20} /> },
   { id: 'eno',       label: '摄影部', icon: <Camera size={20} /> },
   { id: 'kanban',    label: '看板', icon: <Columns3 size={20} /> },
   { id: 'domain',    label: '领域', icon: <Tag size={20} /> },
@@ -23,7 +24,7 @@ export function BottomNav({ current, onChange }: BottomNavProps) {
         <button
           key={item.id}
           onClick={() => onChange(item.id)}
-          className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors ${
+          className={`relative flex-1 min-w-0 flex flex-col items-center justify-center py-2 gap-1 transition-colors ${
             current === item.id ? 'text-stone-900' : 'text-stone-400'
           }`}
         >

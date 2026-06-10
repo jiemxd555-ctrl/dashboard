@@ -41,6 +41,7 @@
 │       │   └── BottomNav.tsx # 手机端底部导航
 │       ├── views/
 │       │   ├── DashboardView.tsx  # 今日驾驶舱
+│       │   ├── DailyBriefingView.tsx # 每日私人简报
 │       │   ├── KanbanView.tsx     # 任务看板
 │       │   ├── DomainView.tsx     # 领域视图
 │       │   ├── ENOView.tsx        # ENO 摄影部
@@ -109,7 +110,7 @@ interface ENOTaskItem {
 
 ## 视图路由
 
-`ViewType = 'dashboard' | 'eno' | 'kanban' | 'domain' | 'timeline' | 'stress'`
+`ViewType = 'dashboard' | 'briefing' | 'eno' | 'kanban' | 'domain' | 'timeline' | 'stress'`
 
 在 `App.tsx` 中通过 `view` state 切换，Sidebar 和 BottomNav 触发 `setView`。
 

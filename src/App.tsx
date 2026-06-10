@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { BottomNav } from './components/layout/BottomNav'
 import { DashboardView } from './components/views/DashboardView'
+import { DailyBriefingView } from './components/views/DailyBriefingView'
 import { KanbanView } from './components/views/KanbanView'
 import { DomainView } from './components/views/DomainView'
 import { ENOView } from './components/views/ENOView'
@@ -72,6 +73,7 @@ export default function App() {
       {/* Main content — on mobile adds bottom padding for nav bar */}
       <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
         {view === 'dashboard' && <DashboardView {...commonProps} />}
+        {view === 'briefing' && <DailyBriefingView {...commonProps} />}
         {view === 'kanban' && (
           <KanbanView
             {...commonProps}
