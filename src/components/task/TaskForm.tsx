@@ -33,8 +33,8 @@ const DEFAULT: FormData = {
 
 function ScoreInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (
-    <div className="flex items-center justify-between sm:block">
-      <label className="text-xs text-stone-500 shrink-0 w-16 sm:w-auto sm:block sm:mb-1.5">{label}</label>
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs text-stone-500">{label}</label>
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map(n => {
           const active = n <= value
@@ -47,7 +47,7 @@ function ScoreInput({ label, value, onChange }: { label: string; value: number; 
               aria-label={`${label} ${n}`}
             >
               <Star
-                size={18}
+                size={20}
                 strokeWidth={1.5}
                 className={active ? 'text-stone-800 fill-stone-800' : 'text-stone-300'}
               />
@@ -112,7 +112,7 @@ export function TaskForm({ initial, onSubmit, onCancel, submitLabel = '保存' }
       </div>
 
       {/* 评分：重要性、紧急性、执行难度 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <ScoreInput label="重要性" value={form.importance} onChange={v => set('importance', v)} />
         <ScoreInput label="紧急性" value={form.urgency} onChange={v => set('urgency', v)} />
         <ScoreInput label="执行难度" value={form.difficulty} onChange={v => set('difficulty', v)} />
