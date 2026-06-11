@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 
-const sourceDir = process.env.BRIEFING_SOURCE_DIR || '/Users/a/daily-briefings'
+const sourceDir = process.env.BRIEFING_SOURCE_DIR || '/Users/a/Desktop/daily'
 const targetUrl = process.env.BRIEFING_SYNC_URL || 'https://jie-board.com/api/briefing'
 const token = process.env.BRIEFING_SYNC_TOKEN || ''
 const date = process.env.BRIEFING_DATE || new Date().toISOString().slice(0, 10)

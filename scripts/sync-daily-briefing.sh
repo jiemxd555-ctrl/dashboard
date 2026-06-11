@@ -11,4 +11,6 @@ if [[ -f "$SCRIPT_DIR/../.env.local" ]]; then
   set +a
 fi
 
+: "${BRIEFING_SOURCE_DIR:=/Users/a/Desktop/daily}"
+
 "$NODE" "$SCRIPT_DIR/sync-daily-briefing.mjs"

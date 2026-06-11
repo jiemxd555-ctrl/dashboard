@@ -169,10 +169,9 @@ interface ENOTaskItem {
 - 网站中的「每日私人简报」页面对应：
   - `src/components/views/DailyBriefingView.tsx`
 - 日报来源不是任务数据，而是本机自动生成的 HTML 文件。
-- 自动化日报真实目录：
-  - `/Users/a/daily-briefings`
-- 桌面入口只是软链接：
-  - `/Users/a/Desktop/daily -> /Users/a/daily-briefings`
+- 日报读取入口统一使用：
+  - `/Users/a/Desktop/daily`
+- 这个路径可能是软链接，目标目录未来可能调整；同步脚本不要写死真实落盘目录，优先跟随这个桌面入口。
 
 ### 同步方式
 
@@ -191,14 +190,14 @@ interface ENOTaskItem {
 - Shell 包装：
   - `scripts/sync-daily-briefing.sh`
 - 默认行为：
-  - 从 `/Users/a/daily-briefings` 里寻找当天 `YYYY-MM-DD.html` 或 `YYYY-MM-DD-v2.html` 等版本文件
+  - 从 `/Users/a/Desktop/daily` 里寻找当天 `YYYY-MM-DD.html` 或 `YYYY-MM-DD-v2.html` 等版本文件
   - 选最近修改的一份
   - POST 到 `https://jie-board.com/api/briefing`
 
 ### 可选环境变量
 
 ```bash
-BRIEFING_SOURCE_DIR=/Users/a/daily-briefings
+BRIEFING_SOURCE_DIR=/Users/a/Desktop/daily
 BRIEFING_SYNC_URL=https://jie-board.com/api/briefing
 BRIEFING_SYNC_TOKEN=
 BRIEFING_DATE=2026-06-10
