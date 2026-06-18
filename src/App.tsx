@@ -92,7 +92,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen md:h-screen md:overflow-hidden bg-stone-50 text-stone-900">
+    <div className="flex min-h-screen bg-stone-50 text-stone-900">
       <Sidebar
         current={view}
         onChange={setView}
@@ -103,8 +103,8 @@ export default function App() {
       />
 
       {/* Main content — on mobile adds bottom padding for nav bar */}
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-        <div key={view}>
+      <main className="flex-1 min-w-0 pb-20 md:pb-0 md:min-h-screen">
+        <div key={view} className="min-h-full">
           {renderView()}
         </div>
       </main>

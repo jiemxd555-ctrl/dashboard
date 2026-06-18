@@ -67,7 +67,7 @@ function SyncIndicator({ status, onSync }: { status: SyncStatus; onSync: () => v
 
 export function Sidebar({ current, onChange, onExport, onImport, syncStatus, onSync }: SidebarProps) {
   return (
-    <aside className="hidden md:flex w-56 flex-shrink-0 h-screen bg-stone-50 border-r border-stone-100 flex-col sticky top-0">
+    <aside className="hidden md:flex w-56 flex-shrink-0 min-h-screen md:h-dvh bg-stone-50 border-r border-stone-100 flex-col sticky top-0">
       {/* Logo */}
       <div className="px-5 pt-7 pb-6">
         <div className="text-sm font-semibold text-stone-800 tracking-wide">事务驾驶舱</div>
