@@ -49,6 +49,7 @@ export function StressView({ tasks, onTaskClick, onMarkDone }: StressViewProps) 
   // Relief suggestions
   const paused = active.filter(t => t.importance <= 2 && t.urgency <= 2)
   const lowValue = active.filter(t => t.importance * 3 + t.urgency * 2 + t.longTermValue * 2 - t.difficulty < 10)
+  const urgentItems = [...new Map([...overdue, ...highPriority].map(task => [task.id, task])).values()]
 
   const arcDeg = (stressIndex / 10) * 180
 
@@ -143,7 +144,7 @@ export function StressView({ tasks, onTaskClick, onMarkDone }: StressViewProps) 
             <AlertTriangle size={14} className="text-red-400" /> 需要立即处理
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[...overdue, ...highPriority].slice(0, 6).map(task => (
+            {urgentItems.slice(0, 6).map(task => (
               <TaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} onMarkDone={() => onMarkDone(task.id)} />
             ))}
           </div>
