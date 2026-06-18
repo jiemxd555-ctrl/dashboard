@@ -10,19 +10,6 @@
 
   html {
     font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    background: #fafaf9;
-  }
-
-  html,
-  body,
-  #root {
-    min-height: 100%;
-    background: #fafaf9;
-  }
-
-  body {
-    min-height: 100vh;
-    min-height: 100dvh;
   }
 
   ::-webkit-scrollbar {
