@@ -59,6 +59,38 @@ export default function App() {
     onAddTask: () => setAddModalOpen(true),
   }
 
+  const renderView = () => {
+    switch (view) {
+      case 'dashboard':
+        return <DashboardView {...commonProps} />
+      case 'briefing':
+        return <DailyBriefingView {...commonProps} />
+      case 'kanban':
+        return (
+          <KanbanView
+            {...commonProps}
+            onUpdateStatus={handleUpdateStatus}
+          />
+        )
+      case 'domain':
+        return <DomainView {...commonProps} />
+      case 'eno':
+        return <ENOView enoTeam={enoTeam} onUpdateENOTeam={updateENOTeam} enoOverview={enoOverview} onUpdateENOOverview={updateENOOverview} />
+      case 'timeline':
+        return <TimelineView {...commonProps} />
+      case 'stress':
+        return (
+          <StressView
+            tasks={tasks}
+            onTaskClick={commonProps.onTaskClick}
+            onMarkDone={commonProps.onMarkDone}
+          />
+        )
+      default:
+        return <DashboardView {...commonProps} />
+    }
+  }
+
   return (
     <div className="flex min-h-screen md:h-screen md:overflow-hidden bg-stone-50 text-stone-900">
       <Sidebar
@@ -72,24 +104,9 @@ export default function App() {
 
       {/* Main content — on mobile adds bottom padding for nav bar */}
       <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
-        {view === 'dashboard' && <DashboardView {...commonProps} />}
-        {view === 'briefing' && <DailyBriefingView {...commonProps} />}
-        {view === 'kanban' && (
-          <KanbanView
-            {...commonProps}
-            onUpdateStatus={handleUpdateStatus}
-          />
-        )}
-        {view === 'domain' && <DomainView {...commonProps} />}
-        {view === 'eno' && <ENOView enoTeam={enoTeam} onUpdateENOTeam={updateENOTeam} enoOverview={enoOverview} onUpdateENOOverview={updateENOOverview} />}
-        {view === 'timeline' && <TimelineView {...commonProps} />}
-        {view === 'stress' && (
-          <StressView
-            tasks={tasks}
-            onTaskClick={commonProps.onTaskClick}
-            onMarkDone={commonProps.onMarkDone}
-          />
-        )}
+        <div key={view}>
+          {renderView()}
+        </div>
       </main>
 
       {/* Mobile bottom nav */}

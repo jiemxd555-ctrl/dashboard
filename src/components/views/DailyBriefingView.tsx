@@ -18,27 +18,46 @@ interface BriefingResponse {
   sourceFile?: string
 }
 
+function normalizeBriefingCss(css: string): string {
+  return css
+    .replace(/\bhtml\b/g, '.briefing-root')
+    .replace(/\bbody\b/g, '.briefing-root')
+}
+
+function renderBriefingIntoShadowRoot(host: HTMLDivElement, html: string) {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  const styles = Array.from(doc.querySelectorAll('style'))
+    .map(style => style.textContent ?? '')
+    .join('\n')
+
+  const root = host.shadowRoot ?? host.attachShadow({ mode: 'open' })
+  const normalizedCss = normalizeBriefingCss(styles)
+
+  root.innerHTML = `
+    <style>
+      :host {
+        display: block;
+      }
+
+      .briefing-root {
+        display: block;
+        min-height: 640px;
+      }
+
+      ${normalizedCss}
+    </style>
+    <div class="briefing-root">${doc.body.innerHTML}</div>
+  `
+}
+
 export function DailyBriefingView(_: DailyBriefingViewProps) {
   const today = format(new Date(), 'M月d日 EEEE', { locale: zhCN })
   const [briefing, setBriefing] = useState<BriefingResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
-  const [frameHeight, setFrameHeight] = useState(960)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-
-  const measureFrame = () => {
-    const doc = iframeRef.current?.contentDocument
-    if (!doc) return
-
-    const nextHeight = Math.max(
-      doc.documentElement.scrollHeight,
-      doc.body?.scrollHeight ?? 0,
-      640
-    )
-
-    setFrameHeight(nextHeight)
-  }
+  const hostRef = useRef<HTMLDivElement>(null)
+  const latestBriefingRef = useRef<BriefingResponse | null>(null)
 
   const fetchBriefing = async (silent?: boolean) => {
     if (silent) {
@@ -52,7 +71,17 @@ export function DailyBriefingView(_: DailyBriefingViewProps) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
       const data = await res.json() as BriefingResponse | null
-      setBriefing(data)
+      const previous = latestBriefingRef.current
+      const changed =
+        previous?.updatedAt !== data?.updatedAt ||
+        previous?.date !== data?.date ||
+        previous?.html !== data?.html
+
+      if (changed) {
+        latestBriefingRef.current = data
+        setBriefing(data)
+      }
+
       setError('')
     } catch (err) {
       console.warn('Failed to load daily briefing:', err)
@@ -66,24 +95,21 @@ export function DailyBriefingView(_: DailyBriefingViewProps) {
   useEffect(() => {
     void fetchBriefing()
 
-    const intervalId = window.setInterval(() => {
-      void fetchBriefing(true)
-    }, 60_000)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchBriefing(true)
+      }
+    }
 
-    return () => window.clearInterval(intervalId)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
   useEffect(() => {
-    if (!briefing) return
+    if (!briefing || !hostRef.current) return
 
-    const timers = [
-      window.setTimeout(measureFrame, 60),
-      window.setTimeout(measureFrame, 240),
-      window.setTimeout(measureFrame, 900),
-      window.setTimeout(measureFrame, 1800),
-    ]
-
-    return () => timers.forEach(timer => window.clearTimeout(timer))
+    renderBriefingIntoShadowRoot(hostRef.current, briefing.html)
   }, [briefing])
 
   return (
@@ -145,13 +171,9 @@ export function DailyBriefingView(_: DailyBriefingViewProps) {
             </div>
           </div>
 
-          <iframe
-            ref={iframeRef}
-            title="每日私人简报"
-            srcDoc={briefing.html}
+          <div
+            ref={hostRef}
             className="w-full bg-[#d9d9d6]"
-            style={{ height: `${frameHeight}px` }}
-            onLoad={measureFrame}
           />
         </section>
       )}
